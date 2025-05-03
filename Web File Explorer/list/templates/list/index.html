@@ -1,5 +1,13 @@
 {% load static %}
-<!DOCTYPE html>
+<!DOCTYPE h
+        <button id="classify-file">🧠 Dosya Sınıflandır</button>
+    
+        <button id="quarantine-file">🛑 Karantinaya Al</button>
+    
+        <button id="malware-scan">☣️ Malware Tara</button>
+    
+        <button id="regex-scan">🔍 Regex ile Tara</button>
+    tml>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -9,6 +17,13 @@
     <link rel="stylesheet" href="https://css.gg/css">
   
 </head>
+
+<form method="get" action="/list/">
+    <label for="path">Bir dizin seçin:</label>
+    <input type="text" name="path" id="path" value="{{ path }}" style="width: 400px;">
+    <input type="submit" value="Göster">
+</form>
+
 <body>
     <div id="outer-shadow" class="outer-shadow">
         <div class="inner-div">
@@ -91,5 +106,43 @@
         history.replaceState(null, null, "?path={{path}}");
     </script>
     <script src="{% static 'script.js' %}"></script>
+
+        <form id="regex-form" style="margin-top:20px;" action="#">
+            <label for="regex-path">Dosya Yolu:</label>
+            <input type="text" id="regex-path" placeholder="/dosya/yolu.txt" required>
+            <label for="regex-pattern">Regex Pattern:</label>
+            <input type="text" id="regex-pattern" placeholder="ör: \d{11}" required>
+            <button type="submit">Taramayı Başlat</button>
+        </form>
+        <pre id="regex-result" style="background:#f1f1f1;padding:10px;margin-top:10px;"></pre>
+    
+
+        <form id="malware-form" style="margin-top:20px;" action="#">
+            <label for="malware-path">Dosya Yolu:</label>
+            <input type="text" id="malware-path" placeholder="/dosya/yolu.txt" required>
+            <button type="submit">Taramayı Başlat</button>
+        </form>
+        <pre id="malware-result" style="background:#fff1f1;padding:10px;margin-top:10px;border:1px solid #c00;"></pre>
+    
+
+        <form id="quarantine-form" style="margin-top:20px;" action="#">
+            <label for="quarantine-path">Dosya Yolu:</label>
+            <input type="text" id="quarantine-path" placeholder="/dosya/yolu.txt" required>
+            <button type="submit">Karantinaya Al</button>
+        </form>
+        <pre id="quarantine-result" style="background:#f9f9f9;padding:10px;margin-top:10px;border:1px solid #666;"></pre>
+    
+
+        <form id="classify-form" style="margin-top:20px;" action="#">
+            <label for="classify-path">Dosya Yolu:</label>
+            <input type="text" id="classify-path" placeholder="/dosya/yolu.txt" required>
+            <button type="submit">Sınıflandır</button>
+        </form>
+        <pre id="classify-result" style="background:#f0f9ff;padding:10px;margin-top:10px;border:1px solid #00a;"></pre>
+    
 </body>
 </html>
+
+{% if error %}
+    <p style="color: red;">{{ error }}</p>
+{% endif %}

@@ -1,0 +1,52 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>🧠 Dosya Güvenlik Dashboard</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background: #f5f9ff; }
+        h1 { color: #004477; }
+        .panel { background: #fff; padding: 15px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        pre { background: #eef; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .alert { background: #ffe6e6; padding: 10px; border-left: 5px solid red; }
+        .success { background: #e6ffe6; padding: 10px; border-left: 5px solid green; }
+    </style>
+</head>
+<body>
+    <h1>🧠 Dosya Güvenlik Dashboard</h1>
+
+    <div class="panel">
+        <h2>📁 Tarama Geçmişi</h2>
+        <div id="scan-log">
+            <em>Veri yükleniyor...</em>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>🔔 Bildirimler</h2>
+        <div class="success">Sistem stabil durumda.</div>
+    </div>
+
+    <script>
+        // JSON'dan geçmiş taramaları çek
+        fetch('/static/scan_logs.json')
+            .then(res => res.json())
+            .then(data => {
+                let div = document.getElementById("scan-log");
+                if (data.length === 0) {
+                    div.innerHTML = "<p>Henüz kayıtlı analiz bulunmuyor.</p>";
+                } else {
+                    let html = data.map(entry => {
+                        return `<pre><strong>${entry.path}</strong> [${entry.categories.join(", ") || "Yok"}]
+Boyut: ${entry.metadata.size}B | İzinler: ${entry.metadata.permissions} | Zaman: ${new Date(entry.metadata.last_modified * 1000).toLocaleString()}</pre>`;
+                    }).join("");
+                    div.innerHTML = html;
+                }
+            })
+            .catch(err => {
+                document.getElementById("scan-log").innerHTML = "<div class='alert'>Log verisi yüklenemedi.</div>";
+            });
+    </script>
+</body>
+</html>

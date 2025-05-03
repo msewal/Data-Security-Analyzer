@@ -8,7 +8,14 @@ from django.shortcuts import redirect
 def index(request):
     
     context = {}  # prepare the context which will be used to pass data to the template.
-    path = request.GET.get("path", "")  # Get the wanted path from  the information the browser sent (/list?path=XXXXX)
+    path = request.GET.get("path", "C:/Users/msevv/Desktop")  # Get the wanted path from  the information the browser sent (/list?path=XXXXX)
+    if not os.path.exists(path):
+        return render(request, "list/index.html", {
+            "list": [],
+            "path": path,
+            "error": f"'{path}' dizini bulunamadı veya erişilemiyor."
+        })
+
     path = pwd(path) #called to get the full path and updates the variable path.
     result= ls(path) # execute ls command with the wanted path (ls -lah path) and get the result as one whole string
     result_lines= result.split("\n") # split the whole string to lines where each file info is on a separete line
@@ -153,3 +160,63 @@ def api_savefile(request):
         f.write(text)
         f.close()
         return redirect(f"/list/edit?path={path}")
+
+
+from django.http import JsonResponse
+from .bash.cmd import regex_search_in_file
+
+def api_regex_search(request):
+    path = request.GET.get("path")
+    pattern = request.GET.get("pattern")
+
+    if not path or not pattern:
+        return JsonResponse({"error": True, "msg": "Path and pattern required."})
+
+    result = regex_search_in_file(path, pattern)
+    return JsonResponse(result)
+
+
+
+from .bash.cmd import malware_scan_file
+
+def api_malware_scan(request):
+    path = request.GET.get("path")
+
+    if not path:
+        return JsonResponse({"error": True, "msg": "Path parameter required."})
+
+    result = malware_scan_file(path)
+    return JsonResponse(result)
+
+
+
+from .bash.cmd import quarantine_file
+
+def api_quarantine(request):
+    path = request.GET.get("path")
+
+    if not path:
+        return JsonResponse({"error": True, "msg": "Path parameter required."})
+
+    result = quarantine_file(path)
+    return JsonResponse(result)
+
+
+
+from .bash.cmd import classify_file
+
+def api_classify_file(request):
+    path = request.GET.get("path")
+
+    if not path:
+        return JsonResponse({"error": True, "msg": "Path parameter required."})
+
+    result = classify_file(path)
+    return JsonResponse(result)
+
+
+
+from django.shortcuts import render
+
+def dashboard(request):
+    return render(request, "list/dashboard.html")

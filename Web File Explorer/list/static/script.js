@@ -168,3 +168,133 @@ for (let edit_btn of edit_buttons) {
         window.open(`${window.location.origin}/list/edit?path=${edit_btn.dataset.path}`, '_blank');
     })
 }
+
+
+
+// Regex Tara butonu ve form
+const regexForm = document.getElementById("regex-form");
+const regexResult = document.getElementById("regex-result");
+
+if (regexForm) {
+    regexForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const path = document.getElementById("regex-path").value;
+        const pattern = document.getElementById("regex-pattern").value;
+
+        fetch(`/list/api/regex_search/?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    regexResult.textContent = "Hata: " + data.msg;
+                } else {
+                    regexResult.textContent = `🔍 ${data.count} eşleşme bulundu:
+
+` + data.matches.join("\n");
+                }
+            })
+            .catch(error => {
+                regexResult.textContent = "İstek başarısız: " + error;
+            });
+    });
+}
+
+
+
+// ☣️ Malware Tara formu
+const malwareForm = document.getElementById("malware-form");
+const malwareResult = document.getElementById("malware-result");
+
+if (malwareForm) {
+    malwareForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const path = document.getElementById("malware-path").value;
+
+        fetch(`/list/api/malware_scan/?path=${encodeURIComponent(path)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    malwareResult.textContent = "Hata: " + data.msg;
+                } else if (data.total > 0) {
+                    let output = `☠️ ${data.total} potansiyel tehdit bulundu:\n`;
+                    data.matches.forEach(m => {
+                        output += `- Pattern: ${m.pattern}, Sayı: ${m.count}\n`;
+                    });
+                    malwareResult.textContent = output;
+                } else {
+                    malwareResult.textContent = "✅ Hiçbir zararlı imza bulunamadı.";
+                }
+            })
+            .catch(error => {
+                malwareResult.textContent = "İstek başarısız: " + error;
+            });
+    });
+}
+
+
+
+// 🛑 Karantinaya Al formu
+const quarantineForm = document.getElementById("quarantine-form");
+const quarantineResult = document.getElementById("quarantine-result");
+
+if (quarantineForm) {
+    quarantineForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const path = document.getElementById("quarantine-path").value;
+
+        fetch(`/list/api/quarantine/?path=${encodeURIComponent(path)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    quarantineResult.textContent = "Hata: " + data.msg;
+                } else {
+                    quarantineResult.textContent = "✅ " + data.msg;
+                }
+            })
+            .catch(error => {
+                quarantineResult.textContent = "İstek başarısız: " + error;
+            });
+    });
+}
+
+
+
+// 🧠 Dosya Sınıflandır formu
+const classifyForm = document.getElementById("classify-form");
+const classifyResult = document.getElementById("classify-result");
+
+if (classifyForm) {
+    classifyForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        const path = document.getElementById("classify-path").value;
+
+        fetch(`/list/api/classify_file/?path=${encodeURIComponent(path)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    classifyResult.textContent = "Hata: " + data.msg;
+                } else {
+                    let result = data.result;
+                    let output = `📄 Dosya: ${result.path}\n`;
+                    output += `🔍 Sınıflar: ${result.categories.join(", ") || "Yok"}\n\n`;
+
+                    output += `📎 Eşleşen Kalıplar:\n`;
+                    for (let category in result.matches) {
+                        output += `- ${category.toUpperCase()}\n`;
+                        result.matches[category].forEach(m => {
+                            output += `  • ${m.pattern} (${m.count} eşleşme)\n`;
+                        });
+                    }
+
+                    output += `\n📊 Metadata:\n`;
+                    output += `- Boyut: ${result.metadata.size} byte\n`;
+                    output += `- İzinler: ${result.metadata.permissions}\n`;
+                    output += `- Değiştirilme: ${new Date(result.metadata.last_modified * 1000).toLocaleString()}\n`;
+
+                    classifyResult.textContent = output;
+                }
+            })
+            .catch(error => {
+                classifyResult.textContent = "İstek başarısız: " + error;
+            });
+    });
+}
