@@ -1,59 +1,70 @@
-h1 {
-    color: rgb(210, 210, 210);
-    font-style: inherit;
-    display: flex;
-    align-items: center;
-}
-body {
-    background-color: rgb(26, 24, 24);
-}
-table {
-    margin-bottom: 12px;
-}
-th, td {
+.button-container {
+    margin: 20px 0;
     padding: 10px;
-    text-align: left;
-    color: #ffffff;
 }
-a {
-    color: #007bff;
-    text-decoration: none; 
-}
-h1 i {
-    margin-left: 25px;
-    margin-top: 12px;
-} 
-i {
+.button-container button {
+    margin-right: 10px;
+    padding: 10px 15px;
+    font-size: 14px;
     cursor: pointer;
+    background-color: #900018;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+.button-container button:hover {
+    background-color: #c61a28;
 }
 
-.outer-shadow {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
-    background-color: rgba(100, 100, 100, .9);
-    display: none;
-    align-items: center;
-    justify-content: center;
+.table-container {
+    max-height: 500px;
+    overflow-y: auto;
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
 }
 
-.inner-div {
-    background-color: #eee;
-    padding: 20px;
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 30px;
+    font-size: 15px;
+    table-layout: fixed;
+    max-width: 100%;
 }
 
-.inner-div input[type=text] {
-    width: 300px;
-    padding: 5px;
+th, td {
+    border: 1px solid #bbb;
+    padding: 8px 10px;
+    text-align: left;
+    overflow-x: auto;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 220px;
 }
 
-#mkdir-form,
-#touch-form,
-#cp-form,
-#mv-form,
-#chmod-form {
-    display: none;
+th {
+    background-color: #900018;
+    color: #fff;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+tr:hover {
+    background-color: #ffe6e6;
+}
+
+a {
+    color: #900018;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: #c61a28;
 }

@@ -1,30 +1,32 @@
 {% load static %}
-<!DOCTYPE h
-        <button id="classify-file">🧠 Dosya Sınıflandır</button>
-    
-        <button id="quarantine-file">🛑 Karantinaya Al</button>
-    
-        <button id="malware-scan">☣️ Malware Tara</button>
-    
-        <button id="regex-scan">🔍 Regex ile Tara</button>
-    tml>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Index of {{path}} </title> 
+    <title>Index of {{path}}</title>
     <link rel="stylesheet" href="{% static 'style.css' %}">
-    <link rel="stylesheet" href="https://css.gg/css">
-  
 </head>
 
-<form method="get" action="/list/">
-    <label for="path">Bir dizin seçin:</label>
-    <input type="text" name="path" id="path" value="{{ path }}" style="width: 400px;">
-    <input type="submit" value="Göster">
-</form>
-
 <body>
+    <form method="get" action="/list/">
+        <label for="path">Bir dizin seçin:</label>
+        <input type="text" name="path" id="path" value="{{ path }}" style="width: 400px;">
+        <input type="submit" value="Göster">
+    </form>
+
+    <div class="button-container">
+        <button id="mkdir">📁 Klasör Oluştur</button>
+        <button id="touch">📄 Dosya Oluştur</button>
+        <button id="show-cp">📋 Dosya Kopyala</button>
+        <button id="show-mv">📦 Dosya Taşı</button>
+        <button id="show-chmod">🔧 İzinleri Değiştir</button>
+        <button id="show-regex">🔍 Regex ile Ara</button>
+        <button id="show-malware-scan">🦠 Zararlı Dosya Tara</button>
+        <button id="show-quarantine">🛑 Karantina</button>
+        <button id="show-classify">📊 Veri Sınıflandır</button>
+    </div>
+
     <div id="outer-shadow" class="outer-shadow">
         <div class="inner-div">
             <i id="close" class="gg-close"></i>
@@ -32,117 +34,109 @@
                 <p>create new directory in {{path}}:</p>
                 <input type="hidden" id="mkdir-path" value="{{path}}">
                 <input type="text" id="mkdir-name">
-                <br>
                 <input type="submit" value="create directory">
             </form>
+
             <form id="touch-form" action="#">
                 <p>create new file in {{path}}:</p>
                 <input type="hidden" id="touch-path" value="{{path}}">
                 <input type="text" id="touch-name">
-                <br>
                 <input type="submit" value="create file">
             </form>
+
             <form id="cp-form" action="#">
                 <p id="cp-title">Copy file:</p>
                 <input type="hidden" id="cp-src">
                 <input type="text" id="cp-dest">
-                <br>
                 <input type="submit" value="copy">
             </form>
+
             <form id="mv-form" action="#">
                 <p id="mv-title">Move file:</p>
                 <input type="hidden" id="mv-src">
                 <input type="text" id="mv-dest">
-                <br>
                 <input type="submit" value="move">
             </form>
+
             <form id="chmod-form" action="#">
-                <p id="chmod-title">Change permessions on file:</p>
+                <p id="chmod-title">Change permissions on file:</p>
                 <input type="hidden" id="chmod-path">
                 <input type="text" id="chmod-mod">
-                <br>
                 <input type="submit" value="change mod">
             </form>
+
+            <!-- New functionality for malware analysis and file exploration -->
+            <form id="regex-form" action="#">
+                <p>Search files with regex pattern:</p>
+                <input type="hidden" id="regex-path" value="{{path}}">
+                <input type="text" id="regex-pattern" placeholder="Enter regex pattern">
+                <input type="submit" value="Search">
+            </form>
+
+            <form id="malware-scan-form" action="#">
+                <p>Scan directory for malware:</p>
+                <input type="hidden" id="malware-scan-path" value="{{path}}">
+                <select id="scan-type">
+                    <option value="quick">Quick Scan</option>
+                    <option value="deep">Deep Scan</option>
+                </select>
+                <input type="submit" value="Scan for Malware">
+            </form>
+
+            <form id="quarantine-form" action="#">
+                <p id="quarantine-title">Move file to quarantine:</p>
+                <input type="hidden" id="quarantine-path">
+                <input type="submit" value="Move to Quarantine">
+            </form>
+
+            <form id="classify-form" action="#">
+                <p>Classify data in directory:</p>
+                <input type="hidden" id="classify-path" value="{{path}}">
+                <select id="classification-type">
+                    <option value="sensitive">Sensitive Data</option>
+                    <option value="personal">Personal Information</option>
+                    <option value="financial">Financial Data</option>
+                    <option value="all">All Types</option>
+                </select>
+                <input type="submit" value="Classify Data">
+            </form>
+
             <p id="msg"></p>
         </div>
     </div>
 
-    <h1>the files in the {{path}} dir is:<i id="mkdir" class="gg-folder-add" title="create folder" data-path="{{path}}/"></i><i id="touch" class="gg-file-add" title="create file" data-path="{{path}}/"></i></h1>
-    <hr>
     <table>
         <tr>
-            <th>Name</th>
-            <th>Size</th>
-            <th>Permissions</th>
-            <th>Owner User</th>
-            <th>Owner Group</th>
-            <th>Last Modified</th>
+            <th>Name</th><th>Size</th><th>Permissions</th><th>Owner User</th><th>Owner Group</th><th>Last Modified</th><th>Access Frequency</th>
         </tr>
         {% for file_arr in list %}
         <tr>
             {% if file_arr.0.0 == "d" %}
-            <td><a href="/list?path={{path}}/{{ file_arr.8 }}">{{file_arr.8}}</a></td>
+                <td><a href="/list?path={{path}}/{{ file_arr.9 }}">{{file_arr.9}}</a></td>
             {% else %}
-            <td>{{file_arr.8}}</td>
+                <td>{{file_arr.9}}</td>
             {% endif %}
-            <td>{{file_arr.4}}B</td>
-            <td>{{file_arr.0}}</td>
-            <td>{{file_arr.2}}</td>
-            <td>{{file_arr.3}}</td>
+            <td>{{file_arr.4}}B</td><td>{{file_arr.0}}</td><td>{{file_arr.2}}</td><td>{{file_arr.3}}</td>
             <td>{{file_arr.5}} {{file_arr.6}} {{file_arr.7}}</td>
-            {% if file_arr.0.0 == "d" and file_arr.8 == ".." %}
+            <td>{{file_arr.8}}</td>
+            {% if file_arr.0.0 == "d" and file_arr.9 == ".." %}
             {% else %}
-            <td><i class="gg-copy cp" title="Copy" data-path="{{path}}/{{file_arr.8}}"></i></td>
-            <td><i class="gg-move-up mv" title="move" data-path="{{path}}/{{file_arr.8}}"></i></td>
-            <td><i class="gg-edit-exposure chmod" title="edit permession" data-path="{{path}}/{{file_arr.8}}"></i></td>
+                <td><i class="gg-copy cp" title="Copy" data-path="{{path}}/{{file_arr.9}}"></i></td>
+                <td><i class="gg-move-up mv" title="Move" data-path="{{path}}/{{file_arr.9}}"></i></td>
+                <td><i class="gg-edit-exposure chmod" title="Chmod" data-path="{{path}}/{{file_arr.9}}"></i></td>
+                <td><i class="gg-danger quarantine" title="Quarantine" data-path="{{path}}/{{file_arr.9}}"></i></td>
             {% endif %}
-            {% if file_arr.9 and file_arr.0.0 == "-" %}
-                <td><i class="gg-pen edit" title="edit file" data-path="{{path}}/{{file_arr.8}}"></i></td>
+            {% if file_arr.10 and file_arr.0.0 == "-" %}
+                <td><i class="gg-pen edit" title="Edit" data-path="{{path}}/{{file_arr.9}}"></i></td>
             {% endif %}
         </tr>
         {% endfor %}
     </table>
+
     <script>
         history.replaceState(null, null, "?path={{path}}");
     </script>
     <script src="{% static 'script.js' %}"></script>
-
-        <form id="regex-form" style="margin-top:20px;" action="#">
-            <label for="regex-path">Dosya Yolu:</label>
-            <input type="text" id="regex-path" placeholder="/dosya/yolu.txt" required>
-            <label for="regex-pattern">Regex Pattern:</label>
-            <input type="text" id="regex-pattern" placeholder="ör: \d{11}" required>
-            <button type="submit">Taramayı Başlat</button>
-        </form>
-        <pre id="regex-result" style="background:#f1f1f1;padding:10px;margin-top:10px;"></pre>
-    
-
-        <form id="malware-form" style="margin-top:20px;" action="#">
-            <label for="malware-path">Dosya Yolu:</label>
-            <input type="text" id="malware-path" placeholder="/dosya/yolu.txt" required>
-            <button type="submit">Taramayı Başlat</button>
-        </form>
-        <pre id="malware-result" style="background:#fff1f1;padding:10px;margin-top:10px;border:1px solid #c00;"></pre>
-    
-
-        <form id="quarantine-form" style="margin-top:20px;" action="#">
-            <label for="quarantine-path">Dosya Yolu:</label>
-            <input type="text" id="quarantine-path" placeholder="/dosya/yolu.txt" required>
-            <button type="submit">Karantinaya Al</button>
-        </form>
-        <pre id="quarantine-result" style="background:#f9f9f9;padding:10px;margin-top:10px;border:1px solid #666;"></pre>
-    
-
-        <form id="classify-form" style="margin-top:20px;" action="#">
-            <label for="classify-path">Dosya Yolu:</label>
-            <input type="text" id="classify-path" placeholder="/dosya/yolu.txt" required>
-            <button type="submit">Sınıflandır</button>
-        </form>
-        <pre id="classify-result" style="background:#f0f9ff;padding:10px;margin-top:10px;border:1px solid #00a;"></pre>
-    
+    <script src="{% static 'list/js/regex-search.js' %}"></script>
 </body>
 </html>
-
-{% if error %}
-    <p style="color: red;">{{ error }}</p>
-{% endif %}

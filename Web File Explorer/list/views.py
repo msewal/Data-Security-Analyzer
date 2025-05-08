@@ -1,14 +1,27 @@
 import os
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
-from .bash.cmd import ls, pwd, mkdir, cp, mv, touch, chmod, isTextFile
+from .bash.cmd import ls, pwd, mkdir, cp, mv, touch, chmod, isTextFile, normalize_path
 from django.shortcuts import redirect
+import json
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import ensure_csrf_cookie
 
+# Import new functionality modules
+from .bash.regextools import regex_search
+from .bash.malwaretools import malware_scan
+from .bash.quarantine import quarantine_file, get_quarantined_files
+from .bash.classification import classify_data
 
 def index(request):
     
     context = {}  # prepare the context which will be used to pass data to the template.
-    path = request.GET.get("path", "C:/Users/msevv/Desktop")  # Get the wanted path from  the information the browser sent (/list?path=XXXXX)
+    path = request.GET.get("path", "/mnt/c/users/msevv/downloads/")  # Default path for Ubuntu/WSL environment
+    
+    # Normalize the path
+    path = normalize_path(path)
+    print(f"DEBUG: Checking path: {path} Exists: {os.path.exists(path)}")  # Add this line
+    
     if not os.path.exists(path):
         return render(request, "list/index.html", {
             "list": [],
@@ -25,14 +38,20 @@ def index(request):
 
     # split each line of result_lines to separete arrays / pieces of information
     for line in result_lines:
-        data = line.split()
-        files_info.append(data) #Appends the list of words (information) to the files_info list.
+        parts = line.split()
+        if len(parts) < 10:
+            continue  # skip malformed lines
+        # The filename may contain spaces, so join the rest
+        meta = parts[:9]  # permissions, links, owner, group, size, date, time, access frequency
+        filename = ' '.join(parts[9:])
+        data = meta + [filename]
+        files_info.append(data)
 
     for file in files_info:
-        if file[8] == "..":
+        if file[9] == "..":
             file.append(False)
         else:
-            full_path = f"{path}/{file[8]}"
+            full_path = f"{path}/{file[9]}"
             try:
                 isText = isTextFile(full_path)
                 file.append(isText)
@@ -161,62 +180,88 @@ def api_savefile(request):
         f.close()
         return redirect(f"/list/edit?path={path}")
 
+# New API endpoint for regex search
+def api_regex(request):
+    try:
+        path = request.GET["path"]
+    except KeyError:
+        response = {}
+        response['error'] = True
+        response['msg'] = "path is not specified."
+        return JsonResponse(response)
+    
+    try:
+        pattern = request.GET["pattern"]
+    except KeyError:
+        response = {}
+        response['error'] = True
+        response['msg'] = "regex pattern is not specified."
+        return JsonResponse(response)
+    
+    search_response = regex_search(path, pattern)
+    return JsonResponse(search_response)
 
-from django.http import JsonResponse
-from .bash.cmd import regex_search_in_file
-
-def api_regex_search(request):
-    path = request.GET.get("path")
-    pattern = request.GET.get("pattern")
-
-    if not path or not pattern:
-        return JsonResponse({"error": True, "msg": "Path and pattern required."})
-
-    result = regex_search_in_file(path, pattern)
-    return JsonResponse(result)
-
-
-
-from .bash.cmd import malware_scan_file
-
+# New API endpoint for malware scanning
 def api_malware_scan(request):
-    path = request.GET.get("path")
+    try:
+        path = request.GET["path"]
+    except KeyError:
+        response = {}
+        response['error'] = True
+        response['msg'] = "path is not specified."
+        return JsonResponse(response)
+    
+    scan_type = request.GET.get("type", "quick")
+    scan_response = malware_scan(path, scan_type)
+    return JsonResponse(scan_response)
 
-    if not path:
-        return JsonResponse({"error": True, "msg": "Path parameter required."})
-
-    result = malware_scan_file(path)
-    return JsonResponse(result)
-
-
-
-from .bash.cmd import quarantine_file
-
+# New API endpoint for quarantining files
 def api_quarantine(request):
-    path = request.GET.get("path")
+    # If path is provided, quarantine the file
+    if "path" in request.GET:
+        path = request.GET["path"]
+        quarantine_response = quarantine_file(path)
+        return JsonResponse(quarantine_response)
+    # Otherwise, get the list of quarantined files
+    else:
+        quarantine_response = get_quarantined_files()
+        return JsonResponse(quarantine_response)
 
-    if not path:
-        return JsonResponse({"error": True, "msg": "Path parameter required."})
+# New API endpoint for data classification
+@require_http_methods(["POST"])
+def api_classify(request):
+    try:
+        data = json.loads(request.body)
+        path = data.get('path')
+        classification_type = data.get('type', 'all')  # Default to 'all' if not specified
+        
+        if not path:
+            return JsonResponse({'error': True, 'msg': 'Path is required'})
+            
+        result = classify_data(path, classification_type)
+        return JsonResponse(result)
+    except Exception as e:
+        return JsonResponse({'error': True, 'msg': str(e)})
 
-    result = quarantine_file(path)
-    return JsonResponse(result)
-
-
-
-from .bash.cmd import classify_file
-
-def api_classify_file(request):
-    path = request.GET.get("path")
-
-    if not path:
-        return JsonResponse({"error": True, "msg": "Path parameter required."})
-
-    result = classify_file(path)
-    return JsonResponse(result)
-
-
-
-from django.shortcuts import render
-
-def dashboard(request):
-    return render(request, "list/dashboard.html")
+@require_http_methods(["POST"])
+def regex_search_view(request):
+    try:
+        path = request.POST.get('path')
+        pattern = request.POST.get('pattern')
+        
+        if not path or not pattern:
+            return JsonResponse({
+                'error': True,
+                'message': 'Both path and pattern are required'
+            })
+            
+        results = regex_search(path, pattern)
+        return JsonResponse({
+            'error': False,
+            'results': results
+        })
+    except Exception as e:
+        return JsonResponse({
+            'error': True,
+            'message': str(e)
+        })

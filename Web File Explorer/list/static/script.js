@@ -6,6 +6,21 @@ let touchForm = document.getElementById("touch-form");
 let cpForm = document.getElementById("cp-form");
 let mvForm = document.getElementById("mv-form");
 let chmodForm = document.getElementById("chmod-form");
+let regexForm = document.getElementById("regex-form");
+let malwareScanForm = document.getElementById("malware-scan-form");
+let quarantineForm = document.getElementById("quarantine-form");
+let classifyForm = document.getElementById("classify-form");
+
+// Initialize display settings for forms
+mkdirForm.style.display = "none";
+touchForm.style.display = "none";
+cpForm.style.display = "none";
+mvForm.style.display = "none";
+chmodForm.style.display = "none";
+regexForm.style.display = "none";
+malwareScanForm.style.display = "none";
+quarantineForm.style.display = "none";
+classifyForm.style.display = "none";
 
 let formMsg = document.getElementById("msg");
 
@@ -19,6 +34,10 @@ formClose.addEventListener("click", () => {
     cpForm.style.display = "none";
     mvForm.style.display = "none";
     chmodForm.style.display = "none";
+    regexForm.style.display = "none";
+    malwareScanForm.style.display = "none";
+    quarantineForm.style.display = "none";
+    classifyForm.style.display = "none";
     window.location.reload();
 })
 
@@ -171,130 +190,195 @@ for (let edit_btn of edit_buttons) {
 
 
 
-// Regex Tara butonu ve form
-const regexForm = document.getElementById("regex-form");
-const regexResult = document.getElementById("regex-result");
+// show-cp button
+let show_cp_btn = document.getElementById("show-cp");
+show_cp_btn.addEventListener("click", () => {
+    cp_src.value = "";
+    cp_dest.value = "";
+    cp_title.textContent = `Copy file (manual):`;
+    body.style.overflow = "hidden";
+    outerShadow.style.display = "flex";
+    cpForm.style.display = "block";
+});
 
-if (regexForm) {
-    regexForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-        const path = document.getElementById("regex-path").value;
-        const pattern = document.getElementById("regex-pattern").value;
+// show-mv button
+let show_mv_btn = document.getElementById("show-mv");
+show_mv_btn.addEventListener("click", () => {
+    mv_src.value = "";
+    mv_dest.value = "";
+    mv_title.textContent = `Move file (manual):`;
+    body.style.overflow = "hidden";
+    outerShadow.style.display = "flex";
+    mvForm.style.display = "block";
+});
 
-        fetch(`/list/api/regex_search/?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    regexResult.textContent = "Hata: " + data.msg;
-                } else {
-                    regexResult.textContent = `🔍 ${data.count} eşleşme bulundu:
+// show-chmod button
+let show_chmod_btn = document.getElementById("show-chmod");
+show_chmod_btn.addEventListener("click", () => {
+    chmod_path.value = "";
+    chmod_mod.value = "";
+    chmod_title.textContent = `Change permissions (manual):`;
+    body.style.overflow = "hidden";
+    outerShadow.style.display = "flex";
+    chmodForm.style.display = "block";
+});
 
-` + data.matches.join("\n");
-                }
-            })
-            .catch(error => {
-                regexResult.textContent = "İstek başarısız: " + error;
-            });
-    });
+// Regex search functionality
+let show_regex_btn = document.getElementById("show-regex");
+show_regex_btn.addEventListener("click", () => {
+    let regex_pattern = document.getElementById("regex-pattern");
+    regex_pattern.value = "";
+    body.style.overflow = "hidden";
+    outerShadow.style.display = "flex";
+    regexForm.style.display = "block";
+});
+regexForm.addEventListener("submit", e => {
+    e.preventDefault();
+    let path = document.getElementById("regex-path");
+    let pattern = document.getElementById("regex-pattern");
+    fetch(`${window.location.origin}/list/api/regex/?path=${path.value}&pattern=${pattern.value}`)
+    .then(resp => resp.json())
+    .then(json => {
+        if (json.error) {
+            msg = `ERROR: ${json.msg}`
+        } else {
+            msg = `DONE! Found ${json.matches.length} matches.`
+        }
+        formMsg.textContent = msg;
+    })
+});
+
+// Malware scan functionality
+let show_malware_scan_btn = document.getElementById("show-malware-scan");
+show_malware_scan_btn.addEventListener("click", () => {
+    body.style.overflow = "hidden";
+    outerShadow.style.display = "flex";
+    malwareScanForm.style.display = "block";
+});
+malwareScanForm.addEventListener("submit", e => {
+    e.preventDefault();
+    let path = document.getElementById("malware-scan-path");
+    let scanType = document.getElementById("scan-type");
+    fetch(`${window.location.origin}/list/api/malware-scan/?path=${path.value}&type=${scanType.value}`)
+    .then(resp => resp.json())
+    .then(json => {
+        if (json.error) {
+            msg = `ERROR: ${json.msg}`
+        } else {
+            if (json.threats.length > 0) {
+                msg = `ALERT! Found ${json.threats.length} potential threats.`
+            } else {
+                msg = `DONE! No threats found.`
+            }
+        }
+        formMsg.textContent = msg;
+    })
+});
+
+// Quarantine functionality
+let quarantine_path = document.getElementById("quarantine-path");
+let quarantine_title = document.getElementById("quarantine-title");
+let show_quarantine_btn = document.getElementById("show-quarantine");
+show_quarantine_btn.addEventListener("click", () => {
+    quarantine_path.value = "";
+    quarantine_title.textContent = `View quarantined files:`;
+    body.style.overflow = "hidden";
+    outerShadow.style.display = "flex";
+    quarantineForm.style.display = "block";
+    // Load quarantined files
+    fetch(`${window.location.origin}/list/api/quarantine/`)
+    .then(resp => resp.json())
+    .then(json => {
+        if (json.error) {
+            msg = `ERROR: ${json.msg}`
+        } else {
+            if (json.files.length > 0) {
+                msg = `${json.files.length} files in quarantine.`
+            } else {
+                msg = `No files in quarantine.`
+            }
+        }
+        formMsg.textContent = msg;
+    })
+});
+
+// Add quarantine functionality to file context
+let quarantine_btns = Array.from(document.querySelectorAll(".quarantine"))
+for (let quarantine_btn of quarantine_btns) {
+    let path = quarantine_btn.dataset.path;
+    quarantine_btn.addEventListener("click", () => {
+        quarantine_path.value = path;
+        quarantine_title.textContent = `Move file ${path} to quarantine:`;
+        body.style.overflow = "hidden";
+        outerShadow.style.display = "flex";
+        quarantineForm.style.display = "block";
+    })
 }
+quarantineForm.addEventListener("submit", e => {
+    e.preventDefault();
+    if (quarantine_path.value) {
+        fetch(`${window.location.origin}/list/api/quarantine/?path=${quarantine_path.value}`)
+        .then(resp => resp.json())
+        .then(json => {
+            if (json.error) {
+                msg = `ERROR: ${json.msg}`
+            } else {
+                msg = `DONE! File moved to quarantine.`
+            }
+            formMsg.textContent = msg;
+        })
+    } else {
+        formMsg.textContent = "No file selected for quarantine.";
+    }
+});
 
-
-
-// ☣️ Malware Tara formu
-const malwareForm = document.getElementById("malware-form");
-const malwareResult = document.getElementById("malware-result");
-
-if (malwareForm) {
-    malwareForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-        const path = document.getElementById("malware-path").value;
-
-        fetch(`/list/api/malware_scan/?path=${encodeURIComponent(path)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    malwareResult.textContent = "Hata: " + data.msg;
-                } else if (data.total > 0) {
-                    let output = `☠️ ${data.total} potansiyel tehdit bulundu:\n`;
-                    data.matches.forEach(m => {
-                        output += `- Pattern: ${m.pattern}, Sayı: ${m.count}\n`;
+// Data classification functionality
+let show_classify_btn = document.getElementById("show-classify");
+show_classify_btn.addEventListener("click", () => {
+    body.style.overflow = "hidden";
+    outerShadow.style.display = "flex";
+    classifyForm.style.display = "block";
+});
+classifyForm.addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const path = document.getElementById('classify-path').value;
+    const type = document.getElementById('classify-type').value;
+    
+    try {
+        const response = await fetch('/list/api/classify/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ path, type })
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+            formMsg.textContent = `ERROR: ${result.msg}`;
+        } else {
+            let message = 'Classification Results:\n';
+            if (result.summary) {
+                message += result.summary + '\n\n';
+            }
+            
+            if (result.classified_files && result.classified_files.length > 0) {
+                message += 'Files containing sensitive data:\n';
+                result.classified_files.forEach(file => {
+                    message += `\nFile: ${file.file}\n`;
+                    Object.entries(file.classifications).forEach(([type, count]) => {
+                        if (count > 0) {
+                            message += `- ${type}: ${count} matches\n`;
+                        }
                     });
-                    malwareResult.textContent = output;
-                } else {
-                    malwareResult.textContent = "✅ Hiçbir zararlı imza bulunamadı.";
-                }
-            })
-            .catch(error => {
-                malwareResult.textContent = "İstek başarısız: " + error;
-            });
-    });
-}
-
-
-
-// 🛑 Karantinaya Al formu
-const quarantineForm = document.getElementById("quarantine-form");
-const quarantineResult = document.getElementById("quarantine-result");
-
-if (quarantineForm) {
-    quarantineForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-        const path = document.getElementById("quarantine-path").value;
-
-        fetch(`/list/api/quarantine/?path=${encodeURIComponent(path)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    quarantineResult.textContent = "Hata: " + data.msg;
-                } else {
-                    quarantineResult.textContent = "✅ " + data.msg;
-                }
-            })
-            .catch(error => {
-                quarantineResult.textContent = "İstek başarısız: " + error;
-            });
-    });
-}
-
-
-
-// 🧠 Dosya Sınıflandır formu
-const classifyForm = document.getElementById("classify-form");
-const classifyResult = document.getElementById("classify-result");
-
-if (classifyForm) {
-    classifyForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-        const path = document.getElementById("classify-path").value;
-
-        fetch(`/list/api/classify_file/?path=${encodeURIComponent(path)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    classifyResult.textContent = "Hata: " + data.msg;
-                } else {
-                    let result = data.result;
-                    let output = `📄 Dosya: ${result.path}\n`;
-                    output += `🔍 Sınıflar: ${result.categories.join(", ") || "Yok"}\n\n`;
-
-                    output += `📎 Eşleşen Kalıplar:\n`;
-                    for (let category in result.matches) {
-                        output += `- ${category.toUpperCase()}\n`;
-                        result.matches[category].forEach(m => {
-                            output += `  • ${m.pattern} (${m.count} eşleşme)\n`;
-                        });
-                    }
-
-                    output += `\n📊 Metadata:\n`;
-                    output += `- Boyut: ${result.metadata.size} byte\n`;
-                    output += `- İzinler: ${result.metadata.permissions}\n`;
-                    output += `- Değiştirilme: ${new Date(result.metadata.last_modified * 1000).toLocaleString()}\n`;
-
-                    classifyResult.textContent = output;
-                }
-            })
-            .catch(error => {
-                classifyResult.textContent = "İstek başarısız: " + error;
-            });
-    });
-}
+                });
+            }
+            
+            formMsg.textContent = message;
+        }
+    } catch (error) {
+        formMsg.textContent = `Error during classification: ${error.message}`;
+    }
+});
