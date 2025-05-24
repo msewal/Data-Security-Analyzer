@@ -1,49 +1,50 @@
 {% extends "list/base_table.html" %}
 {% load static %}
 
-{% block title %}Prosedürler{% endblock %}
+{% block title %}Dosya İşlemleri{% endblock %}
 
-{% block table_title %}Prosedürler{% endblock %}
+{% block table_title %}Dosya İşlemleri{% endblock %}
 
 {% block table_headers %}
-<th>Prosedür Adı</th>
+<th>İşlem Adı</th>
 <th>Açıklama</th>
-<th>Durum</th>
-<th>Son Çalıştırma</th>
 <th>İşlemler</th>
 {% endblock %}
 
 {% block table_content %}
 <tr>
     <td>Dosya Taraması</td>
-    <td>Tüm dosyaları virüs ve zararlı yazılımlara karşı tarar</td>
-    <td><span class="badge bg-success">Aktif</span></td>
-    <td>2024-02-20 15:30</td>
+    <td>Seçilen dosyayı virüs ve zararlı yazılımlara karşı tarar</td>
     <td>
-        <button class="btn btn-sm btn-primary" onclick="runProcedure('scan')">
-            <i class="bi bi-play-fill"></i> Çalıştır
+        <button class="btn btn-sm btn-primary" onclick="runOperation('malware_scan')">
+            <i class="bi bi-shield-check"></i> Tarama Başlat
         </button>
     </td>
 </tr>
 <tr>
-    <td>Güvenlik Denetimi</td>
-    <td>Sistem güvenlik ayarlarını kontrol eder</td>
-    <td><span class="badge bg-success">Aktif</span></td>
-    <td>2024-02-20 14:45</td>
+    <td>Dosya Sınıflandırma</td>
+    <td>Dosyayı içeriğine göre sınıflandırır (kişisel, şüpheli vb.)</td>
     <td>
-        <button class="btn btn-sm btn-primary" onclick="runProcedure('security')">
-            <i class="bi bi-play-fill"></i> Çalıştır
+        <button class="btn btn-sm btn-info" onclick="runOperation('classify')">
+            <i class="bi bi-tags"></i> Sınıflandır
         </button>
     </td>
 </tr>
 <tr>
-    <td>Yedekleme</td>
-    <td>Önemli dosyaları yedekler</td>
-    <td><span class="badge bg-warning">Beklemede</span></td>
-    <td>2024-02-19 23:00</td>
+    <td>Karantina</td>
+    <td>Şüpheli dosyayı karantina klasörüne taşır</td>
     <td>
-        <button class="btn btn-sm btn-primary" onclick="runProcedure('backup')">
-            <i class="bi bi-play-fill"></i> Çalıştır
+        <button class="btn btn-sm btn-warning" onclick="runOperation('quarantine')">
+            <i class="bi bi-shield-lock"></i> Karantinaya Al
+        </button>
+    </td>
+</tr>
+<tr>
+    <td>Regex Arama</td>
+    <td>Dosya içeriğinde regex ile arama yapar</td>
+    <td>
+        <button class="btn btn-sm btn-secondary" onclick="showRegexSearch()">
+            <i class="bi bi-search"></i> Regex Ara
         </button>
     </td>
 </tr>
@@ -51,26 +52,47 @@
 
 {% block scripts %}
 <script>
-function runProcedure(type) {
-    if (confirm('Bu prosedürü çalıştırmak istediğinizden emin misiniz?')) {
-        fetch('{% url "list:run_procedure" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ type: type })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Prosedür başarıyla çalıştırıldı');
-                location.reload();
-            } else {
-                alert('Prosedür çalıştırma başarısız: ' + data.error);
-            }
-        });
+function runOperation(type) {
+    const path = prompt('Lütfen işlem yapılacak dosyanın tam yolunu girin:');
+    if (!path) return;
+
+    let url = '';
+    switch(type) {
+        case 'malware_scan':
+            url = `/list/api/malware_scan?path=${encodeURIComponent(path)}`;
+            break;
+        case 'classify':
+            url = `/list/api/classify_file?path=${encodeURIComponent(path)}`;
+            break;
+        case 'quarantine':
+            url = `/list/api/quarantine?path=${encodeURIComponent(path)}`;
+            break;
     }
+
+    if (url) {
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Hata: ' + data.msg);
+                } else {
+                    alert('İşlem başarılı: ' + JSON.stringify(data, null, 2));
+                }
+            })
+            .catch(error => {
+                alert('Bir hata oluştu: ' + error);
+            });
+    }
+}
+
+function showRegexSearch() {
+    const path = prompt('Lütfen arama yapılacak dosyanın tam yolunu girin:');
+    if (!path) return;
+    
+    const pattern = prompt('Lütfen arama yapılacak regex desenini girin:');
+    if (!pattern) return;
+
+    window.location.href = `/list/regex_search?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}`;
 }
 </script>
 {% endblock %}
