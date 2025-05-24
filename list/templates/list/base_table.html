@@ -1,0 +1,55 @@
+{% extends "list/base.html" %}
+{% load static %}
+
+{% block content %}
+{% include "list/sidebar.html" %}
+
+<div class="container" style="transition: all 0.3s; padding-top: 20px; margin-top: 80px;">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>{% block table_title %}{% endblock %}</h2>
+                {% block table_actions %}{% endblock %}
+            </div>
+
+            {% block table_search %}
+            <form method="get" class="mb-3">
+                <div class="input-group">
+                    <input type="text" name="path" class="form-control" value="{{ current_path }}" placeholder="Dosya yolu">
+                    <button class="btn btn-primary" type="submit">Git</button>
+                </div>
+            </form>
+            {% endblock %}
+
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            {% block table_headers %}
+                            <th>Dosya Adı</th>
+                            <th>Tür</th>
+                            <th>Boyut</th>
+                            <th>İzinler</th>
+                            <th>Sahip</th>
+                            <th>Grup</th>
+                            <th>Oluşturulma Tarihi</th>
+                            <th>Değişiklik Tarihi</th>
+                            <th>Son Erişim Tarihi</th>
+                            <th>Erişim Sıklığı</th>
+                            <th>İşlemler</th>
+                            {% endblock %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% block table_content %}{% endblock %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block modals %}{% endblock %}
+
+{% block scripts %}{% endblock %}
+{% endblock %} 

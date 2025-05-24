@@ -1,0 +1,64 @@
+{% extends "list/base.html" %}
+{% load static %}
+
+{% block title %}Karantina - Quarantine{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <div>
+            ⚠️ {{ files|length }} malicious file(s) detected and moved to quarantine. Please review and take action.
+        </div>
+    </div>
+    <h2 class="mb-4">Karantinaya Alınan Dosyalar</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Dosya Adı</th>
+                    <th>Orijinal Konum</th>
+                    <th>Tespit Nedeni</th>
+                    <th>Karantina Tarihi</th>
+                    <th>Tarama Tipi</th>
+                    <th>SHA256</th>
+                    <th>Boyut</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for file in files %}
+                <tr>
+                    <td>{{ file.filename }}</td>
+                    <td>{{ file.original_path }}</td>
+                    <td>{{ file.reason }}</td>
+                    <td>{{ file.quarantine_time }}</td>
+                    <td>{{ file.scan_type }}</td>
+                    <td style="font-size:10px; word-break:break-all;">{{ file.hash }}</td>
+                    <td>{{ file.size }} B</td>
+                    <td>
+                        <a href="{% url 'list:quarantine_restore' file.filename|add:'.quarantine' %}" class="btn btn-success btn-sm">Geri Yükle</a>
+                        <a href="{% url 'list:quarantine_delete' file.filename|add:'.quarantine' %}" class="btn btn-danger btn-sm" onclick="return confirm('Bu dosyayı silmek istediğinizden emin misiniz?')">Sil</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">Karantinada dosya yok.</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mt-3 text-muted" style="font-size:13px;">
+        Karantina klasörü: <code>{{ quarantine_dir }}</code>
+    </div>
+</div>
+{% endblock %} 

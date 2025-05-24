@@ -1,0 +1,59 @@
+h1 {
+    color: rgb(210, 210, 210);
+    font-style: inherit;
+    display: flex;
+    align-items: center;
+}
+body {
+    background-color: rgb(26, 24, 24);
+}
+table {
+    margin-bottom: 12px;
+}
+th, td {
+    padding: 10px;
+    text-align: left;
+    color: #ffffff;
+}
+a {
+    color: #007bff;
+    text-decoration: none; 
+}
+h1 i {
+    margin-left: 25px;
+    margin-top: 12px;
+} 
+i {
+    cursor: pointer;
+}
+
+.outer-shadow {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background-color: rgba(100, 100, 100, .9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.inner-div {
+    background-color: #eee;
+    padding: 20px;
+}
+
+.inner-div input[type=text] {
+    width: 300px;
+    padding: 5px;
+}
+
+#mkdir-form,
+#touch-form,
+#cp-form,
+#mv-form,
+#chmod-form {
+    display: none;
+}

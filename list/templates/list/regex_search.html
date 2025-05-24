@@ -1,0 +1,28 @@
+{% extends "list/base_table.html" %}
+{% load static %}
+
+{% block title %}Regex Arama{% endblock %}
+
+{% block table_title %}Regex Arama Sonuçları{% endblock %}
+
+{% block table_content %}
+{% for file in list %}
+<tr>
+    <td>
+        {% if file.is_dir %}
+            <a href="?path={{ path }}/{{ file.filename }}" class="text-decoration-none">{{ file.filename }}</a>
+        {% else %}
+            {{ file.filename }}
+        {% endif %}
+    </td>
+    <td>{% if file.is_dir %}Klasör{% else %}Dosya{% endif %}</td>
+    <td>{{ file.size }}B</td>
+    <td>{{ file.permissions }}</td>
+    <td>{{ file.owner }}</td>
+    <td>{{ file.group }}</td>
+    <td>{{ file.created_time }}</td>
+    <td>{{ file.modified_time }}</td>
+    <td>{{ file.accessed_time }}</td>
+</tr>
+{% endfor %}
+{% endblock %} 

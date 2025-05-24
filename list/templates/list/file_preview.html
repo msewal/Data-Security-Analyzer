@@ -1,0 +1,42 @@
+{% extends "list/base_table.html" %}
+{% load static %}
+
+{% block title %}{{ file_name|default:'Dosya Önizleme' }}{% endblock %}
+
+{% block table_title %}{{ file_name|default:'Dosya Önizleme' }}{% endblock %}
+
+{% block table_content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            {% if error %}
+            <div class="alert alert-danger" role="alert">
+                {{ error }}
+            </div>
+            {% elif path %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Dosya Adı: {{ file_name }}</h5>
+                </div>
+                <div class="card-body">
+                    {% if file_type == 'text' %}
+                        <pre>{{ content }}</pre>
+                    {% elif file_type == 'image' %}
+                        <img src="{% url 'list:download_file' %}?path={{ path }}" class="img-fluid" alt="{{ file_name }}">
+                    {% else %}
+                        <p>Bu dosya türü için önizleme mevcut değil.</p>
+                    {% endif %}
+
+                    <div class="mt-4">
+                        <p>Dosyayı indirmek ister misiniz?</p>
+                        <a href="{% url 'list:download_file' %}?path={{ path }}" class="btn btn-primary">
+                            <i class="bi bi-download me-2"></i>Dosyayı İndir
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

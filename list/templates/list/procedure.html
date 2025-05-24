@@ -1,0 +1,77 @@
+{% extends "list/base_table.html" %}
+{% load static %}
+
+{% block title %}Prosedürler{% endblock %}
+
+{% block table_title %}Prosedürler{% endblock %}
+
+{% block table_headers %}
+<th>Prosedür Adı</th>
+<th>Açıklama</th>
+<th>Durum</th>
+<th>Son Çalıştırma</th>
+<th>İşlemler</th>
+{% endblock %}
+
+{% block table_content %}
+<tr>
+    <td>Dosya Taraması</td>
+    <td>Tüm dosyaları virüs ve zararlı yazılımlara karşı tarar</td>
+    <td><span class="badge bg-success">Aktif</span></td>
+    <td>2024-02-20 15:30</td>
+    <td>
+        <button class="btn btn-sm btn-primary" onclick="runProcedure('scan')">
+            <i class="bi bi-play-fill"></i> Çalıştır
+        </button>
+    </td>
+</tr>
+<tr>
+    <td>Güvenlik Denetimi</td>
+    <td>Sistem güvenlik ayarlarını kontrol eder</td>
+    <td><span class="badge bg-success">Aktif</span></td>
+    <td>2024-02-20 14:45</td>
+    <td>
+        <button class="btn btn-sm btn-primary" onclick="runProcedure('security')">
+            <i class="bi bi-play-fill"></i> Çalıştır
+        </button>
+    </td>
+</tr>
+<tr>
+    <td>Yedekleme</td>
+    <td>Önemli dosyaları yedekler</td>
+    <td><span class="badge bg-warning">Beklemede</span></td>
+    <td>2024-02-19 23:00</td>
+    <td>
+        <button class="btn btn-sm btn-primary" onclick="runProcedure('backup')">
+            <i class="bi bi-play-fill"></i> Çalıştır
+        </button>
+    </td>
+</tr>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function runProcedure(type) {
+    if (confirm('Bu prosedürü çalıştırmak istediğinizden emin misiniz?')) {
+        fetch('{% url "list:run_procedure" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ type: type })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Prosedür başarıyla çalıştırıldı');
+                location.reload();
+            } else {
+                alert('Prosedür çalıştırma başarısız: ' + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
+

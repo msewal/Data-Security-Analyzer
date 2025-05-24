@@ -1,0 +1,45 @@
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Distribution / packaging
+.Python
+build/
+dist/
+wheels/
+*.egg-info/
+
+# Environments
+.env
+.venv/
+env/
+vault/
+venv/
+*/venv/
+
+# Unit test / coverage reports
+.tox/
+.coverage
+.cache/
+nosetests.xml
+dictcoverage.xml
+coverage/
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+thumbs.db
+
+# Django specific
+db.sqlite3
+media/
+static_cdn/
+staticfiles/
+
+# Cursor specific
+.cursor/

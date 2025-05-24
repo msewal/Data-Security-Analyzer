@@ -1,0 +1,212 @@
+{% load static %}
+
+<!-- Sidebar Toggle Button -->
+<button class="btn btn-primary position-fixed" id="sidebarToggle" style="z-index: 1040; top: 10px; left: 10px;">
+    <i class="bi bi-list"></i>
+</button>
+
+<!-- Sidebar -->
+<div class="sidebar bg-light border-end" id="sidebar">
+    <div class="position-sticky pt-3">
+        <div class="px-3 mb-3">
+            <h5 class="text-primary">Hızlı Erişim</h5>
+        </div>
+        
+        <!-- Sık Kullanılan Klasörler -->
+        <div class="px-3 mb-3">
+            <h6 class="text-muted text-uppercase">Sık Kullanılan Klasörler</h6>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link text-dark" href="?path=/mnt/c/Users/Melek/Downloads">
+                        <i class="bi bi-download me-2"></i>İndirilenler
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark" href="?path=/mnt/c/Users/Melek/Desktop">
+                        <i class="bi bi-desktop me-2"></i>Masaüstü
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark" href="?path=/mnt/c/Users/Melek/Documents">
+                        <i class="bi bi-file-earmark-text me-2"></i>Belgeler
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark" href="?path=/mnt/c/Users/Melek/Pictures">
+                        <i class="bi bi-image me-2"></i>Resimler
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark" href="?path=/mnt/c/Users/Melek/Music">
+                        <i class="bi bi-music-note me-2"></i>Müzikler
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark" href="?path=/mnt/c/Users/Melek/Videos">
+                        <i class="bi bi-camera-video me-2"></i>Videolar
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Sık Kullanılan Dosyalar -->
+        <div class="px-3 mb-3">
+            <h6 class="text-muted text-uppercase">Sık Kullanılan Dosyalar</h6>
+            <ul class="nav flex-column" id="recentFiles">
+                <!-- Bu kısım JavaScript ile doldurulacak -->
+            </ul>
+        </div>
+
+        <!-- Hızlı İşlemler -->
+        <div class="px-3 mb-3">
+            <h6 class="text-muted text-uppercase">Hızlı İşlemler</h6>
+            <div class="d-grid gap-2">
+                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="bi bi-upload me-1"></i>Dosya Yükle
+                </button>
+                <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#newFolderModal">
+                    <i class="bi bi-folder-plus me-1"></i>Yeni Klasör
+                </button>
+                <a href="{% url 'list:quarantine_list' %}" class="btn btn-outline-warning btn-sm">
+                    <i class="bi bi-shield-lock me-1"></i>Karantina
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sidebar Styles -->
+<style>
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 48px 0 0;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+    width: 250px;
+    transition: all 0.3s ease-in-out;
+    overflow-y: auto;
+}
+
+.sidebar.collapsed {
+    margin-left: -250px;
+}
+
+.sidebar .nav-link {
+    font-weight: 500;
+    color: #333;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    margin: 0.2rem 0;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.sidebar .nav-link.active {
+    color: #2470dc;
+}
+
+#sidebarToggle {
+    position: fixed;
+    top: 10px;
+    z-index: 1040;
+    transition: left 0.3s ease-in-out;
+}
+
+#sidebarToggle.collapsed {
+    left: 10px;
+}
+
+#sidebarToggle:not(.collapsed) {
+    left: 250px;
+}
+</style>
+
+<!-- Sidebar JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    
+    // Geçişleri geçici olarak devre dışı bırak
+    sidebar.style.transition = 'none';
+    sidebarToggle.style.transition = 'none';
+
+    // Sidebar durumunu localStorage'dan al
+    const isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+
+    if (isSidebarCollapsed) {
+        sidebar.classList.add('collapsed');
+        sidebarToggle.classList.add('collapsed');
+        sidebarToggle.style.left = '10px';
+    } else {
+         sidebar.classList.remove('collapsed');
+         sidebarToggle.classList.remove('collapsed');
+         sidebarToggle.style.left = '250px';
+    }
+
+    // Sidebar'ın başlangıç durumu ayarlandıktan sonra geçişleri tekrar etkinleştir
+    // Küçük bir gecikme ekleyerek tarayıcının stil değişikliklerini işlemesine izin ver
+    setTimeout(() => {
+        sidebar.style.transition = 'all 0.3s ease-in-out';
+        sidebarToggle.style.transition = 'left 0.3s ease-in-out';
+    }, 50); // 50ms genellikle yeterlidir
+
+    // Sidebar toggle işlevi
+    sidebarToggle.addEventListener('click', function() {
+        // Tıklama olayında geçişler zaten etkin olmalı, burada tekrar ayarlamaya gerek yok
+        sidebar.classList.toggle('collapsed');
+        sidebarToggle.classList.toggle('collapsed');
+        
+        if (sidebar.classList.contains('collapsed')) {
+            localStorage.setItem('sidebarCollapsed', 'true');
+             // Sidebar styles already handle button position based on collapsed class
+            // sidebarToggle.style.left = '10px';
+        } else {
+            localStorage.setItem('sidebarCollapsed', 'false');
+            // Sidebar styles already handle button position based on collapsed class
+            // sidebarToggle.style.left = '250px';
+        }
+    });
+
+    // Sık kullanılan dosyaları localStorage'dan al ve göster
+    const recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
+    const recentFilesList = document.getElementById('recentFiles');
+    
+    recentFiles.forEach(file => {
+        const li = document.createElement('li');
+        li.className = 'nav-item';
+        li.innerHTML = `
+            <a class="nav-link text-dark" href="{% url 'list:file_preview' %}?path=${file.path}">
+                <i class="bi bi-file-earmark me-2"></i>${file.name}
+            </a>
+        `;
+        recentFilesList.appendChild(li);
+    });
+});
+
+// Dosya açıldığında sık kullanılanlara ekle
+function addToRecentFiles(name, path) {
+    const recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
+    
+    // Aynı dosya varsa kaldır
+    const index = recentFiles.findIndex(f => f.path === path);
+    if (index > -1) {
+        recentFiles.splice(index, 1);
+    }
+    
+    // Yeni dosyayı başa ekle
+    recentFiles.unshift({ name, path });
+    
+    // Maksimum 10 dosya tut
+    if (recentFiles.length > 10) {
+        recentFiles.pop();
+    }
+    
+    localStorage.setItem('recentFiles', JSON.stringify(recentFiles));
+}
+</script> 
