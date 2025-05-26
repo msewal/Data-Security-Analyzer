@@ -20,34 +20,34 @@
             <i class="bi bi-shield-check"></i> Tarama Başlat
         </button>
     </td>
-</tr>
+                                        </tr>
 <tr>
     <td>Dosya Sınıflandırma</td>
     <td>Dosyayı içeriğine göre sınıflandırır (kişisel, şüpheli vb.)</td>
-    <td>
+                                            <td>
         <button class="btn btn-sm btn-info" onclick="runOperation('classify')">
             <i class="bi bi-tags"></i> Sınıflandır
         </button>
-    </td>
+                                            </td>
 </tr>
 <tr>
     <td>Karantina</td>
     <td>Şüpheli dosyayı karantina klasörüne taşır</td>
-    <td>
+                                            <td>
         <button class="btn btn-sm btn-warning" onclick="runOperation('quarantine')">
             <i class="bi bi-shield-lock"></i> Karantinaya Al
-        </button>
-    </td>
-</tr>
-<tr>
+                                                    </button>
+                                            </td>
+                                        </tr>
+                                        <tr>
     <td>Regex Arama</td>
     <td>Dosya içeriğinde regex ile arama yapar</td>
     <td>
         <button class="btn btn-sm btn-secondary" onclick="showRegexSearch()">
             <i class="bi bi-search"></i> Regex Ara
         </button>
-    </td>
-</tr>
+                                            </td>
+                                        </tr>
 {% endblock %}
 
 {% block scripts %}
@@ -75,7 +75,7 @@ function runOperation(type) {
             .then(data => {
                 if (data.error) {
                     alert('Hata: ' + data.msg);
-                } else {
+            } else {
                     alert('İşlem başarılı: ' + JSON.stringify(data, null, 2));
                 }
             })

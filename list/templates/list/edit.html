@@ -10,7 +10,7 @@
 <div class="alert alert-danger" role="alert">
     {{ error }}
 </div>
-{% else %}
+    {% else %}
 <tr>
     <td colspan="9">
         <form id="editForm" method="post" action="{% url 'list:api_savefile' %}">
@@ -23,11 +23,11 @@
         </form>
     </td>
 </tr>
-{% endif %}
+    {% endif %}
 {% endblock %}
 
 {% block scripts %}
-<script>
+    <script>
 document.getElementById('editForm').addEventListener('submit', function(event) {
     event.preventDefault();
     const form = event.target;
@@ -93,5 +93,5 @@ document.getElementById('editForm').addEventListener('submit', function(event) {
         }, 5000);
     });
 });
-</script>
+    </script>
 {% endblock %}

@@ -3,26 +3,67 @@
 
 {% block title %}Regex Arama{% endblock %}
 
-{% block table_title %}Regex Arama Sonuçları{% endblock %}
+{% block table_title %}Regex Arama{% endblock %}
+
+{% block table_headers %}
+<th>Dosya/Dizin</th>
+<th>Tür</th>
+<th>İşlemler</th>
+{% endblock %}
 
 {% block table_content %}
-{% for file in list %}
 <tr>
-    <td>
-        {% if file.is_dir %}
-            <a href="?path={{ path }}/{{ file.filename }}" class="text-decoration-none">{{ file.filename }}</a>
-        {% else %}
-            {{ file.filename }}
-        {% endif %}
+    <td colspan="3">
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="searchForm" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="searchPath" class="form-label">Taranacak Yol</label>
+                        <input type="text" class="form-control" id="searchPath" name="path" placeholder="/path/to/search" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tarama Türü</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="searchType" id="fileSearch" value="file" checked>
+                            <label class="form-check-label" for="fileSearch">
+                                Tek Dosya
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="searchType" id="dirSearch" value="directory">
+                            <label class="form-check-label" for="dirSearch">
+                                Dizin
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Taramayı Başlat
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </td>
-    <td>{% if file.is_dir %}Klasör{% else %}Dosya{% endif %}</td>
-    <td>{{ file.size }}B</td>
-    <td>{{ file.permissions }}</td>
-    <td>{{ file.owner }}</td>
-    <td>{{ file.group }}</td>
-    <td>{{ file.created_time }}</td>
-    <td>{{ file.modified_time }}</td>
-    <td>{{ file.accessed_time }}</td>
 </tr>
-{% endfor %}
-{% endblock %} 
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const path = document.getElementById('searchPath').value;
+    const searchType = document.querySelector('input[name="searchType"]:checked').value;
+    
+    if (!path) {
+        alert('Lütfen taranacak yolu girin.');
+        return;
+    }
+    
+    // Sonuçlar sayfasına yönlendir
+    window.location.href = `/list/regex_search_results/?path=${encodeURIComponent(path)}&type=${searchType}`;
+});
+</script>
+{% endblock %}
+

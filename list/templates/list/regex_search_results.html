@@ -5,18 +5,40 @@
 
 {% block table_title %}Regex Arama Sonuçları{% endblock %}
 
+{% block table_headers %}
+<th>Dosya</th>
+<th>Hassas Veri Türü</th>
+<th>Eşleşen Veri</th>
+<th>Satır No</th>
+<th>İşlemler</th>
+{% endblock %}
+
 {% block table_content %}
-{% for result in results %}
-<tr>
-    <td>{{ result.file }}</td>
-    <td>Dosya</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-</tr>
-{% endfor %}
+{% if results %}
+    {% for result in results %}
+    <tr>
+        <td>{{ result.file_path }}</td>
+        <td>{{ result.sensitive_type }}</td>
+        <td>{{ result.matched_data }}</td>
+        <td>{{ result.line_number }}</td>
+        <td>
+            <button class="btn btn-sm btn-info" onclick="viewDetails('{{ result.file_path }}')">
+                <i class="bi bi-eye"></i> Detaylar
+            </button>
+        </td>
+    </tr>
+    {% endfor %}
+{% else %}
+    <tr>
+        <td colspan="5" class="text-center">Hassas veri bulunamadı.</td>
+    </tr>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewDetails(path) {
+    window.location.href = `/list/file_preview?path=${encodeURIComponent(path)}`;
+}
+</script>
 {% endblock %}

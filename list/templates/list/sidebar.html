@@ -49,9 +49,9 @@
             </ul>
         </div>
 
-        <!-- Sık Kullanılan Dosyalar -->
+        <!-- Son Kullanılan Dosyalar -->
         <div class="px-3 mb-3">
-            <h6 class="text-muted text-uppercase">Sık Kullanılan Dosyalar</h6>
+            <h6 class="text-muted text-uppercase">Son Kullanılan Dosyalar</h6>
             <ul class="nav flex-column" id="recentFiles">
                 <!-- Bu kısım JavaScript ile doldurulacak -->
             </ul>
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Sık kullanılan dosyaları localStorage'dan al ve göster
+    // Son kullanılan dosyaları localStorage'dan al ve göster
     const recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
     const recentFilesList = document.getElementById('recentFiles');
     
@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Dosya açıldığında sık kullanılanlara ekle
+// Dosya açıldığında son kullanılanlara ekle
 function addToRecentFiles(name, path) {
     const recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
     
