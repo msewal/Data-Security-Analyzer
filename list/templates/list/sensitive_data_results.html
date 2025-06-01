@@ -1,0 +1,66 @@
+{% extends "list/base_table.html" %}
+{% load static %}
+
+{% block title %}Hassas Veri Tarama Sonuçları{% endblock %}
+
+{% block table_title %}Hassas Veri Tarama Sonuçları{% endblock %}
+
+{% block table_headers %}
+<th>Dosya Yolu</th>
+<th>Hassas Veri Türü</th>
+<th>Bulunan Veri</th>
+<th>Satır Numarası</th>
+<th>İşlemler</th>
+{% endblock %}
+
+{% block table_content %}
+{% if results %}
+    {% for result in results %}
+    <tr>
+        <td>{{ result.file_path }}</td>
+        <td>{{ result.sensitive_type }}</td>
+        <td>{{ result.matched_data }}</td>
+        <td>{{ result.line_number }}</td>
+        <td>
+            <button class="btn btn-sm btn-info" onclick="viewFile('{{ result.file_path|escapejs }}', '{{ result.line_number }}')">
+                <i class="bi bi-eye"></i> Dosyayı Görüntüle
+            </button>
+            <button class="btn btn-sm btn-warning" onclick="quarantineFile('{{ result.file_path|escapejs }}')">
+                <i class="bi bi-shield-lock"></i> Karantinaya Al
+            </button>
+        </td>
+    </tr>
+    {% endfor %}
+{% else %}
+    <tr>
+        <td colspan="5" class="text-center">Hassas veri bulunamadı.</td>
+    </tr>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewFile(path, lineNumber) {
+    window.location.href = `/list/file_preview?path=${encodeURIComponent(path)}&line=${lineNumber}`;
+}
+
+function quarantineFile(path) {
+    if (confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
+        fetch(`/list/api/quarantine?path=${encodeURIComponent(path)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Hata: ' + data.msg);
+                } else {
+                    alert('Dosya başarıyla karantinaya alındı.');
+                    // Sayfayı yenile
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('Bir hata oluştu: ' + error);
+            });
+    }
+}
+</script>
+{% endblock %} 
