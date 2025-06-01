@@ -1,0 +1,117 @@
+{% extends "list/base_table.html" %}
+{% load static %}
+
+{% block title %}Regex Arama{% endblock %}
+{% block table_title %}Regex Arama{% endblock %}
+
+{% block table_headers %}
+<th>Dosya/Dizin</th>
+<th>Tür</th>
+<th>İşlemler</th>
+{% endblock %}
+
+{% block table_content %}
+<tr>
+    <td colspan="3">
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="regex-search-form" method="post" action="{% url 'regex:regex_search_results_view' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label for="directory_path"><strong>Dizin Yolu:</strong></label>
+                        <input type="text" class="form-control" id="directory_path" name="directory_path" required placeholder="/etc, /home, /var gibi...">
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label><strong>Regex Kategorileri:</strong></label>
+                        <div id="category-checkboxes" class="form-check d-flex flex-wrap gap-3 border rounded p-3" style="max-height: 240px; overflow-y: auto;">
+                            <!-- JavaScript ile doldurulacak -->
+                        </div>
+                        <input type="hidden" name="selected_categories" id="selected_categories">
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-outline-success btn-sm me-2" id="select-all-btn">Tümünü Seç</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="deselect-all-btn">Temizle</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label><strong>Tarama Tipi:</strong></label><br>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="scan_type" id="scan_type_full" value="full" checked>
+                            <label class="form-check-label" for="scan_type_full">Tam Tarama</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="scan_type" id="scan_type_partial" value="partial">
+                            <label class="form-check-label" for="scan_type_partial">Kısmi Tarama (İlk 100 Satır)</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-4 w-100">🔍 Aramayı Başlat</button>
+                </form>
+            </div>
+        </div>
+    </td>
+</tr>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const categorySelectBox = document.getElementById('category-checkboxes');
+        const hiddenInput = document.getElementById('selected_categories');
+        const selectAllBtn = document.getElementById('select-all-btn');
+        const deselectAllBtn = document.getElementById('deselect-all-btn');
+
+        const nameMapping = {
+            personalInfo: 'Kişisel Bilgiler',
+            financialData: 'Finansal Veriler',
+            healthData: 'Sağlık Verileri',
+            corporateData: 'Kurumsal ve Ticari Veriler',
+            locationData: 'Konum ve Seyahat Verileri',
+            authData: 'Giriş ve Kimlik Doğrulama',
+            educationData: 'Eğitim ve Sertifikalar',
+            systemSecurityData: 'Sistem ve Güvenlik Kayıtları'
+        };
+
+        fetch('{% url "regex:api_get_regex_patterns" %}')
+            .then(response => response.json())
+            .then(data => {
+                categorySelectBox.innerHTML = '';
+                for (const key in data) {
+                    if (data.hasOwnProperty(key)) {
+                        const label = nameMapping[key] || key;
+                        const checkboxDiv = document.createElement('div');
+                        checkboxDiv.className = 'form-check';
+                        checkboxDiv.innerHTML = `
+                            <input class="form-check-input category-checkbox" type="checkbox" id="cat-${key}" value="${key}">
+                            <label class="form-check-label" for="cat-${key}">${label}</label>
+                        `;
+                        categorySelectBox.appendChild(checkboxDiv);
+                    }
+                }
+            });
+
+        function updateSelectedCategories() {
+            const selected = Array.from(document.querySelectorAll('.category-checkbox:checked')).map(cb => cb.value);
+            hiddenInput.value = selected.join(',');
+        }
+
+        document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('category-checkbox')) {
+                updateSelectedCategories();
+            }
+        });
+
+        selectAllBtn.addEventListener('click', function () {
+            document.querySelectorAll('.category-checkbox').forEach(cb => cb.checked = true);
+            updateSelectedCategories();
+        });
+
+        deselectAllBtn.addEventListener('click', function () {
+            document.querySelectorAll('.category-checkbox').forEach(cb => cb.checked = false);
+            updateSelectedCategories();
+        });
+    });
+</script>
+{% endblock %}

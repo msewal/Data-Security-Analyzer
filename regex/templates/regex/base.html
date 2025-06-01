@@ -1,0 +1,54 @@
+{% extends "list/base.html" %}
+
+{% block title %}{% block regex_title %}Regex{% endblock regex_title %} | {{ block.super }}{% endblock title %}
+
+{% block extra_css %}
+    {{ block.super }}
+    <style>
+        /* Regex specific styles */
+        .pattern-category {
+            margin-bottom: 1rem;
+        }
+        .pattern-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .file-path {
+            word-break: break-all;
+        }
+        .match-count {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .pattern-type {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-left: 0.5rem;
+        }
+        .context {
+            font-family: monospace;
+            white-space: pre-wrap;
+            background-color: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .line-number {
+            color: #6c757d;
+            user-select: none;
+        }
+        .match-highlight {
+            background-color: #ffd700;
+            padding: 0.1rem 0.2rem;
+            border-radius: 0.2rem;
+        }
+    </style>
+{% endblock extra_css %}
+
+{# This block will contain the specific content of regex pages like regex_search.html #}
+{% block content %}
+{% endblock content %}
+
+{% block extra_js %}
+    {{ block.super }}
+    {# Add regex specific js here if needed for all regex pages #}
+{% endblock extra_js %} 

@@ -1,0 +1,154 @@
+{% extends "list/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>Bash Komutları</h2>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Dosya İşlemleri</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-primary" onclick="createDirectory()">Dizin Oluştur</button>
+                        <button type="button" class="btn btn-primary" onclick="createFile()">Dosya Oluştur</button>
+                        <button type="button" class="btn btn-primary" onclick="moveFile()">Dosya Taşı</button>
+                        <button type="button" class="btn btn-primary" onclick="copyFile()">Dosya Kopyala</button>
+                        <button type="button" class="btn btn-primary" onclick="changePermissions()">İzinleri Değiştir</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="result" class="alert" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showResult(message, type) {
+    const result = document.getElementById('result');
+    result.textContent = message;
+    result.className = `alert alert-${type}`;
+    result.style.display = 'block';
+}
+
+function createDirectory() {
+    const path = prompt('Dizin yolu:');
+    if (!path) return;
+    
+    fetch('{% url "bash:api_mkdir" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ path })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResult('Dizin başarıyla oluşturuldu.', 'success');
+        } else {
+            showResult(data.error, 'danger');
+        }
+    });
+}
+
+function createFile() {
+    const path = prompt('Dosya yolu:');
+    if (!path) return;
+    
+    fetch('{% url "bash:api_touch" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ path })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResult('Dosya başarıyla oluşturuldu.', 'success');
+        } else {
+            showResult(data.error, 'danger');
+        }
+    });
+}
+
+function moveFile() {
+    const src = prompt('Kaynak dosya yolu:');
+    if (!src) return;
+    
+    const dest = prompt('Hedef dosya yolu:');
+    if (!dest) return;
+    
+    fetch('{% url "bash:api_mv" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ src, dest })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResult('Dosya başarıyla taşındı.', 'success');
+        } else {
+            showResult(data.error, 'danger');
+        }
+    });
+}
+
+function copyFile() {
+    const src = prompt('Kaynak dosya yolu:');
+    if (!src) return;
+    
+    const dest = prompt('Hedef dosya yolu:');
+    if (!dest) return;
+    
+    fetch('{% url "bash:api_cp" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ src, dest })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResult('Dosya başarıyla kopyalandı.', 'success');
+        } else {
+            showResult(data.error, 'danger');
+        }
+    });
+}
+
+function changePermissions() {
+    const path = prompt('Dosya yolu:');
+    if (!path) return;
+    
+    const mode = prompt('İzin modu (örn: 644):');
+    if (!mode) return;
+    
+    fetch('{% url "bash:api_chmod" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ path, mode })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResult('Dosya izinleri başarıyla değiştirildi.', 'success');
+        } else {
+            showResult(data.error, 'danger');
+        }
+    });
+}
+</script>
+{% endblock %} 

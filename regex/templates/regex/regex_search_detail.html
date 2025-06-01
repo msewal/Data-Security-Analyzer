@@ -1,0 +1,53 @@
+{% extends "list/base_table.html" %}
+{% load static %}
+
+{% block title %}Regex Detay Görüntüleme{% endblock %}
+{% block table_title %}Dosya İçeriği ve Eşleşmeler{% endblock %}
+
+{% block table_content %}
+<tr>
+    <td colspan="3">
+        <div class="card mb-4">
+            <div class="card-body">
+
+                {% if error_message %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error_message }}
+                    </div>
+                {% elif matches %}
+                    <p><strong>📄 Dosya:</strong> {{ file_path }}</p>
+                    <p><strong>🧩 Toplam Eşleşme:</strong> {{ matches|length }}</p>
+
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Satır No</th>
+                                    <th>Satır İçeriği</th>
+                                    <th>Pattern Tipi</th>
+                                    <th>Pattern</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for match in matches %}
+                                    <tr>
+                                        <td>{{ match.line_number }}</td>
+                                        <td class="text-break"><code>{{ match.line_content }}</code></td>
+                                        <td><span class="badge bg-success">{{ match.pattern_type }}</span></td>
+                                        <td><code>{{ match.pattern }}</code></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning" role="alert">
+                        Bu dosyada eşleşen herhangi bir veri bulunamadı.
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </td>
+</tr>
+{% endblock %}

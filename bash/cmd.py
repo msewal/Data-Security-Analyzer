@@ -1,33 +1,26 @@
 import os
 import time
 import subprocess #which is used for running commends in os #kommentleri os'te çalışabilmeyi sağlar 
+import shutil
+import stat
 
 #klasör ve dosyaları listeliyor 
 def ls(path):
-    if not path:
-        path = "."  # varsayılan olarak geçerli dizini kullan
-    if os.name == 'nt':
-        # Windows ise os.listdir kullan
-        entries = os.listdir(path)
-        result = []
-        for entry in entries:
-            full_path = os.path.join(path, entry)
-            stats = os.stat(full_path)
-            permissions = oct(stats.st_mode)[-3:]
-            size = stats.st_size
-            owner_user = stats.st_uid if hasattr(stats, 'st_uid') else "N/A"
-            owner_group = stats.st_gid if hasattr(stats, 'st_gid') else "N/A"
-            modified_time = time.ctime(stats.st_mtime)
-            result.append(f"- {permissions} 1 {owner_user} {owner_group} {size} {modified_time} {entry}")
-        return "\n".join([""] * 2 + result + [""])
-    else:
-        # Linux sistemlerde normal ls kullan
-        output = subprocess.run(f"ls -lah {path}", capture_output=True, text=True, shell=True).stdout
-        return output
-#it take a path as an input and executes the "ls -lah" command in the os
-#text=True: output should be treated as text
-#shell=True: Enables using command directly in the command line.
-#capture_output=True: Saves output of the command
+    """
+    List directory contents
+    """
+    try:
+        items = []
+        for item in os.listdir(path):
+            item_path = os.path.join(path, item)
+            items.append({
+                'name': item,
+                'type': 'directory' if os.path.isdir(item_path) else 'file',
+                'path': item_path
+            })
+        return {'success': True, 'items': items}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
 
 def pwd(path):
     output=subprocess.run(f"cd {path}; pwd",capture_output=True,text=True,shell=True).stdout
@@ -37,106 +30,69 @@ def pwd(path):
 
 #klasör yapmak için 
 def mkdir(path):
+    """
+    Create a directory
+    """
     try:
-        output=subprocess.run(f"mkdir {path}",capture_output=True,text=True,shell=True,check=True).stdout
-        # Başarı durumunda bir bildirim oluştur
-        mkdir_response = {}
-        mkdir_response['error'] = False
-        mkdir_response['msg'] = "directory created."
-        return mkdir_response
-    except subprocess.CalledProcessError as e:
-         # Hata durumunda bir hata bildirimi oluştur
-        mkdir_response = {}
-        mkdir_response['error'] = True
-        mkdir_response['msg'] = e.stderr
-        return mkdir_response
-    
+        os.makedirs(path, exist_ok=True)
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
 def touch(path):
+    """
+    Create an empty file
+    """
     try:
-        output=subprocess.run(f"touch {path}",capture_output=True,text=True,shell=True,check=True).stdout
-        mkdir_response = {}
-        mkdir_response['error'] = False
-        mkdir_response['msg'] = "file created."
-        return mkdir_response
-    except subprocess.CalledProcessError as e:
-        mkdir_response = {}
-        mkdir_response['error'] = True
-        mkdir_response['msg'] = e.stderr
-        return mkdir_response
+        with open(path, 'a'):
+            os.utime(path, None)
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
     
 def mv(src, dest):
+    """
+    Move files or directories
+    """
     try:
-        output=subprocess.run(f"mv {src} {dest}",capture_output=True,text=True,shell=True,check=True).stdout
-        mkdir_response = {}
-        mkdir_response['error'] = False
-        mkdir_response['msg'] = "file moved."
-        return mkdir_response
-    except subprocess.CalledProcessError as e:
-        mkdir_response = {}
-        mkdir_response['error'] = True
-        mkdir_response['msg'] = e.stderr
-        return mkdir_response
+        shutil.move(src, dest)
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
     
 def cp(src, dest):
-    src_is_dir = os.path.isdir(src)
-    dest_is_dir = os.path.isdir(dest)
-    if not dest_is_dir:
-        mkdir_response = {}
-        mkdir_response['error'] = True
-        mkdir_response['msg'] = "destination is not a directory."
-        return mkdir_response
-    dashR = "-r " if src_is_dir else ""
+    """
+    Copy files or directories
+    """
     try:
-        output=subprocess.run(f"cp {dashR}{src} {dest}",capture_output=True,text=True,shell=True,check=True).stdout
-        mkdir_response = {}
-        mkdir_response['error'] = False
-        mkdir_response['msg'] = "file copied."
-        return mkdir_response
-    except subprocess.CalledProcessError as e:
-        mkdir_response = {}
-        mkdir_response['error'] = True
-        mkdir_response['msg'] = e.stderr
-        return mkdir_response
+        if os.path.isdir(src):
+            shutil.copytree(src, dest)
+        else:
+            shutil.copy2(src, dest)
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
     
-def chmod(path, mod):
+def chmod(path, mode):
+    """
+    Change file permissions
+    """
     try:
-        output=subprocess.run(f"chmod {mod} {path}",capture_output=True,text=True,shell=True,check=True).stdout
-        mkdir_response = {}
-        mkdir_response['error'] = False
-        mkdir_response['msg'] = "permissions changed."
-        return mkdir_response
-    except subprocess.CalledProcessError as e:
-        mkdir_response = {}
-        mkdir_response['error'] = True
-        mkdir_response['msg'] = e.stderr
-        return mkdir_response
+        os.chmod(path, int(mode, 8))
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
 
 def isTextFile(path):
-    # read chunk of file
-    fh = open(path,'r')
-    file_data = fh.read(512)
-    fh.close()
-
-    # store chunk length read
-    data_length = len(file_data)
-    if (not data_length):
-        # empty files considered text
+    """
+    Check if a file is a text file
+    """
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            f.read(1024)
         return True
-
-    if ('\x00' in file_data):
-        # file containing null bytes is binary
+    except:
         return False
-
-    # remove all text characters from file chunk, get remaining length
-    text_chars = ''.join([chr(code) for code in range(32,127)] + list('\b\f\n\r\t'))
-    binary_length = len("".join(c for c in file_data if c not in text_chars))
-    print(file_data.replace(text_chars, ""))
-
-    # if percentage of binary characters above 0.3, binary file
-    return (
-        (float(binary_length) / data_length) < 0.3
-    )
-
 
 def regex_search_in_file(file_path, pattern):
     import re

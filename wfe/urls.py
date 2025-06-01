@@ -18,8 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+# from main import views # Assuming main app is not used for index anymore based on summary
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('list.urls')),
+    path('', include('list.urls')), # Assuming list app handles the index view now
+    path('malware/', include('malware.urls')),
+    path('regex/', include('regex.urls')),
+    path('bash/', include('bash.urls')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -1,0 +1,61 @@
+{% extends "list/base_table.html" %}
+{% load static %}
+
+{% block title %}Regex Arama Sonuçları{% endblock %}
+{% block table_title %}Regex Arama Sonuçları{% endblock %}
+
+{% block table_content %}
+<tr>
+    <td colspan="3">
+        <div class="card mb-4">
+            <div class="card-body">
+
+                {% if error_message %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error_message }}
+                    </div>
+                {% elif results %}
+                    <p><strong>📂 Aranan Yol:</strong> {{ search_path }}</p>
+                    <p><strong>🔍 İşlenen Dosya Sayısı:</strong> {{ processed_files_count }}</p>
+                    <p><strong>✅ Eşleşme Bulunan Dosya Sayısı:</strong> {{ matched_files_count }}</p>
+
+                    <div class="table-responsive mt-4">
+                        <table class="table table-bordered table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Dosya Yolu</th>
+                                    <th>Eşleşen Patternler</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in results %}
+                                    <tr>
+                                        <td class="text-break">{{ result.file_path }}</td>
+                                        <td>
+                                            {% for pattern_type, count in result.pattern_counts.items %}
+                                                <span class="badge bg-primary me-1">{{ pattern_type }}: {{ count }}</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            <a class="btn btn-outline-info btn-sm"
+                                               href="{% url 'regex:regex_search_detail_view' file_path=result.file_path|urlencode %}">
+                                                Detay Görüntüle
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning" role="alert">
+                        Seçilen kategorilerde eşleşme bulunamadı.
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </td>
+</tr>
+{% endblock %}

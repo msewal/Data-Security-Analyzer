@@ -1,0 +1,26 @@
+{% extends "bash/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>Bash Komutları</h2>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Dosya İşlemleri</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-primary" onclick="createDirectory()">Dizin Oluştur</button>
+                        <button type="button" class="btn btn-primary" onclick="createFile()">Dosya Oluştur</button>
+                        <button type="button" class="btn btn-primary" onclick="moveFile()">Dosya Taşı</button>
+                        <button type="button" class="btn btn-primary" onclick="copyFile()">Dosya Kopyala</button>
+                        <button type="button" class="btn btn-primary" onclick="changePermissions()">İzinleri Değiştir</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="result" class="alert" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

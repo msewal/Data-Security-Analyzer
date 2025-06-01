@@ -1,132 +1,154 @@
-{% extends "list/base_table.html" %}
+{% extends "list/base.html" %}
 {% load static %}
 
 {% block title %}Dosya Yöneticisi{% endblock %}
 
-{% block table_title %}Dosya Listesi{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Dosya Listesi - {{ current_path }}</h2>
 
-{% block table_actions %}
-<div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
-        <i class="bi bi-upload"></i> Dosya Yükle
-                        </button>
-    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newFolderModal">
-        <i class="bi bi-folder-plus"></i> Yeni Klasör
-                        </button>
-</div>
-{% endblock %}
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
 
-{% block table_content %}
-{% if current_path != "/" %}
-<tr>
-    <td>
-        <a href="?path={{ parent_path }}" class="text-decoration-none">
-            <i class="bi bi-arrow-up"></i> ..
-        </a>
-    </td>
-    <td>Klasör</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-</tr>
-                            {% endif %}
+    <div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+            <i class="bi bi-upload"></i> Dosya Yükle
+        </button>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newFolderModal">
+            <i class="bi bi-folder-plus"></i> Yeni Klasör
+        </button>
+    </div>
 
-{% for item in items %}
-                                <tr>
-                                    <td>
-        {% if item.is_dir %}
-        <a href="?path={{ item.path }}" class="text-decoration-none">
-            <i class="bi bi-folder text-warning"></i> {{ item.name }}
-        </a>
-                                        {% else %}
-        <a href="{% url 'list:file_preview' %}?path={{ item.path }}" class="text-decoration-none" onclick="addToRecentFiles('{{ item.name }}', '{{ item.path }}')">
-            <i class="bi bi-file-earmark"></i> {{ item.name }}
-        </a>
-                                        {% endif %}
-                                    </td>
-    <td>{{ item.file_type_display }}</td>
-    <td>{{ item.size }}</td>
-    <td>{{ item.permissions }}</td>
-    <td>{{ item.owner }}</td>
-    <td>{{ item.group }}</td>
-    <td>{{ item.created }}</td>
-    <td>{{ item.modified }}</td>
-    <td>{{ item.accessed }}</td>
-    <td>
-        <div class="btn-group">
-            {% if not item.is_dir %}
-            <a href="{% url 'list:edit_file' %}?path={{ item.path }}" class="btn btn-sm btn-primary">
-                <i class="bi bi-pencil"></i>
-            </a>
+    <table class="table table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Ad</th>
+                <th>Tip</th>
+                <th>Boyut</th>
+                <th>İzinler</th>
+                <th>Sahip</th>
+                <th>Grup</th>
+                <th>Oluşturulma</th>
+                <th>Değiştirilme</th>
+                <th>Erişim</th>
+                <th>İşlemler</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if current_path != "/" %}
+            <tr>
+                <td>
+                    <a href="?path={{ parent_path }}" class="text-decoration-none">
+                        <i class="bi bi-arrow-up"></i> ..
+                    </a>
+                </td>
+                <td>Klasör</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+            </tr>
             {% endif %}
-            <button class="btn btn-sm btn-danger" onclick="deleteItem('{{ item.path }}')">
-                <i class="bi bi-trash"></i>
-            </button>
-            {% if not item.is_dir %}
-            <button class="btn btn-sm btn-warning" onclick="quarantineItem('{{ item.path }}')">
-                <i class="bi bi-shield-lock"></i>
-            </button>
-            {% endif %}
-        </div>
-    </td>
-</tr>
-{% endfor %}
-{% endblock %}
 
-{% block modals %}
-<!-- Upload Modal -->
-<div class="modal fade" id="uploadModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Dosya Yükle</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form method="post" action="{% url 'list:upload_file' %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                    <input type="hidden" name="path" value="{{ current_path }}">
-                    <div class="mb-3">
-                        <label class="form-label">Dosya Seç</label>
-                        <input type="file" name="file" class="form-control" required>
+            {% for item in items %}
+            <tr>
+                <td>
+                    {% if item.is_dir %}
+                        <a href="?path={{ item.path }}" class="text-decoration-none">
+                            <i class="bi bi-folder text-warning"></i> {{ item.name }}
+                        </a>
+                    {% else %}
+                        <a href="{% url 'list:file_preview' %}?path={{ item.path }}" class="text-decoration-none" onclick="addToRecentFiles('{{ item.name }}', '{{ item.path }}')">
+                            <i class="bi bi-file-earmark"></i> {{ item.name }}
+                        </a>
+                    {% endif %}
+                </td>
+                <td>{{ item.file_type_display }}</td>
+                <td>{{ item.size }}</td>
+                <td>{{ item.permissions }}</td>
+                <td>{{ item.owner }}</td>
+                <td>{{ item.group }}</td>
+                <td>{{ item.created }}</td>
+                <td>{{ item.modified }}</td>
+                <td>{{ item.accessed }}</td>
+                <td>
+                    <div class="btn-group">
+                        {% if not item.is_dir %}
+                        <a href="{% url 'list:edit_file' %}?path={{ item.path }}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% endif %}
+                        <button class="btn btn-sm btn-danger" onclick="deleteItem('{{ item.path }}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        {% if not item.is_dir %}
+                        <button class="btn btn-sm btn-warning" onclick="quarantineItem('{{ item.path }}')">
+                            <i class="bi bi-shield-lock"></i>
+                        </button>
+                        {% endif %}
                     </div>
-                    <button type="submit" class="btn btn-primary">Yükle</button>
-                </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Upload Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Dosya Yükle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+                <div class="modal-body">
+                    <form method="post" action="{% url 'list:upload_file' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="path" value="{{ current_path }}">
+                        <div class="mb-3">
+                            <label class="form-label">Dosya Seç</label>
+                            <input type="file" name="file" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Yükle</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- New Folder Modal -->
-<div class="modal fade" id="newFolderModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Yeni Klasör</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form method="post" action="{% url 'list:create_folder' %}">
-                {% csrf_token %}
-                    <input type="hidden" name="path" value="{{ current_path }}">
-                    <div class="mb-3">
-                        <label class="form-label">Klasör Adı</label>
-                        <input type="text" name="folder_name" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Oluştur</button>
-                </form>
+    <!-- New Folder Modal -->
+    <div class="modal fade" id="newFolderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Yeni Klasör</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+                <div class="modal-body">
+                    <form method="post" action="{% url 'list:create_folder' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="path" value="{{ current_path }}">
+                        <div class="mb-3">
+                            <label class="form-label">Klasör Adı</label>
+                            <input type="text" name="folder_name" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Oluştur</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+{{ block.super }}
 <script>
 function deleteItem(path) {
     if (confirm('Bu öğeyi silmek istediğinizden emin misiniz?')) {
@@ -151,7 +173,7 @@ function deleteItem(path) {
 
 function quarantineItem(path) {
     if (confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
-        fetch('{% url "list:quarantine_file" %}', {
+        fetch('{% url "malware:api_quarantine" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -169,5 +191,8 @@ function quarantineItem(path) {
         });
     }
 }
+
+// Add addToRecentFiles function if it's not in base.html
+// Assuming addToRecentFiles is already in sidebar.html or base.html
 </script>
-{% endblock %}
+{% endblock extra_js %}

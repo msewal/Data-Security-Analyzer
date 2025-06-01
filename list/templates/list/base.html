@@ -57,33 +57,28 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'list:procedure' %}">
-                            <i class="bi bi-tools me-1"></i> Dosya İşlemleri
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'list:regex_search' %}">
-                            <i class="bi bi-search"></i> Regex Arama
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'list:sensitive_data_scan' %}">
-                            <i class="bi bi-shield-lock"></i> Hassas Veri Tarama
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'list:malware_scan' %}">
-                            <i class="bi bi-virus"></i> Virüs Tarama
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'list:quarantine_list' %}">
-                            <i class="bi bi-shield-lock"></i> Karantina
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'list:dashboard' %}">
-                            <i class="bi bi-graph-up"></i> Dashboard
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'regex:regex_search_results_view' %}">
+                            <i class="bi bi-search"></i> Hassas Veri Taraması
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'malware:malware_scan' %}">
+                            <i class="bi bi-shield"></i> Zararlı Yazılım Taraması
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'regex:regex_search_results_view' %}">
+                            <i class="bi bi-regex"></i> Regex Arama
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'malware:quarantine_list' %}">
+                            <i class="bi bi-archive"></i> Karantina
                         </a>
                     </li>
                 </ul>
