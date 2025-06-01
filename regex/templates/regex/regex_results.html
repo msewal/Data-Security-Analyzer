@@ -1,0 +1,99 @@
+{% extends 'list/base.html' %}
+{% load static %}
+
+{% block title %}Regex Tarama Sonuçları{% endblock %}
+
+{% block extra_css %}
+<style>
+    .results-container {
+        margin-top: 20px;
+    }
+    .file-result {
+        background-color: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .pattern-matches {
+        margin-top: 10px;
+        padding-left: 20px;
+    }
+    .match-item {
+        background-color: #f8f9fa;
+        padding: 5px 10px;
+        border-radius: 4px;
+        margin: 2px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .action-btns {
+        margin-left: 10px;
+    }
+    .error-files {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #fff3cd;
+        border: 1px solid #ffeeba;
+        border-radius: 8px;
+    }
+    .error-file-item {
+        color: #856404;
+        margin: 5px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">
+        <i class="bi bi-shield-lock"></i> Regex Tarama Sonuçları
+    </h2>
+    {% if error_message %}
+    <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        {{ error_message }}
+    </div>
+    {% endif %}
+    {% if results %}
+    <div class="results-container">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            Taranan dosya sayısı: {{ processed_files_count }} | Eşleşme bulunan dosya sayısı: {{ matched_files_count }}
+        </div>
+        {% for file_path, matches in results.items %}
+        <div class="file-result">
+            <h5 class="mb-3">
+                <i class="bi bi-file-text"></i> {{ file_path }}
+            </h5>
+            {% for pattern_name, pattern_matches in matches.items %}
+            <div class="pattern-matches">
+                <h6 class="text-primary">{{ pattern_name }}</h6>
+                {% for match in pattern_matches %}
+                <div class="match-item">
+                    <span>{{ match }}</span>
+                    <span class="action-btns">
+                        <button class="btn btn-sm btn-warning" disabled>Mask</button>
+                        <button class="btn btn-sm btn-success" disabled>Encrypt</button>
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if error_files %}
+    <div class="error-files">
+        <h5 class="mb-3">
+            <i class="bi bi-exclamation-triangle-fill"></i> Hata Oluşan Dosyalar
+        </h5>
+        {% for error in error_files %}
+        <div class="error-file-item">{{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

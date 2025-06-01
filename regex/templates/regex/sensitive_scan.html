@@ -1,0 +1,95 @@
+{% extends 'list/base.html' %}
+{% load static %}
+
+{% block title %}Hassas Veri Taraması Başlat{% endblock %}
+
+{% block extra_css %}
+<style>
+    .scan-container {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">
+        <i class="bi bi-shield-check"></i> Hassas Veri Taraması Başlat
+    </h2>
+    <div class="scan-container">
+        <form method="post" action="{% url 'regex:sensitive_scan' %}" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="directory" class="form-label">Arama Yapılacak Dizin</label>
+                    <input type="text" class="form-control" id="directory" name="directory" placeholder="/mnt/c/Users/Melek/Downloads" required>
+                    <div class="form-text">
+                        WSL için örnek: /mnt/c/Users/Melek/Downloads<br>
+                        Windows için örnek: C:\Users\Melek\Downloads
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <label class="form-label">Dosya Türleri</label>
+                    <div class="file-types-container">
+                        <div class="file-type-checkbox">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="file_types" value="txt" id="txt" checked>
+                                <label class="form-check-label" for="txt">Metin Dosyaları (.txt)</label>
+                            </div>
+                        </div>
+                        <div class="file-type-checkbox">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="file_types" value="csv" id="csv" checked>
+                                <label class="form-check-label" for="csv">CSV Dosyaları (.csv)</label>
+                            </div>
+                        </div>
+                        <div class="file-type-checkbox">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="file_types" value="json" id="json" checked>
+                                <label class="form-check-label" for="json">JSON Dosyaları (.json)</label>
+                            </div>
+                        </div>
+                        <div class="file-type-checkbox">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="file_types" value="docx" id="docx" checked>
+                                <label class="form-check-label" for="docx">Word Dosyaları (.docx)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Taramayı Başlat
+                </button>
+            </div>
+        </form>
+    </div>
+    {% if error_message %}
+    <div class="alert alert-danger mt-3">{{ error_message }}</div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %} 

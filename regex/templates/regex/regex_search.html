@@ -1,194 +1,117 @@
-{% extends 'list/base.html' %}
+{% extends "list/base_table.html" %}
 {% load static %}
 
-{% block title %}Regex Arama - Hassas Veri Taraması{% endblock %}
+{% block title %}Regex Arama{% endblock %}
+{% block table_title %}Regex Arama{% endblock %}
 
-{% block extra_css %}
-<style>
-    .search-container {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    .results-container {
-        margin-top: 20px;
-    }
-    .file-result {
-        background-color: white;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .pattern-matches {
-        margin-top: 10px;
-        padding-left: 20px;
-    }
-    .match-item {
-        background-color: #f8f9fa;
-        padding: 5px 10px;
-        border-radius: 4px;
-        margin: 2px 0;
-    }
-    .file-types-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 10px;
-        margin-top: 10px;
-    }
-    .file-type-checkbox {
-        background-color: white;
-        padding: 10px;
-        border-radius: 4px;
-        border: 1px solid #dee2e6;
-    }
-    .error-files {
-        margin-top: 20px;
-        padding: 15px;
-        background-color: #fff3cd;
-        border: 1px solid #ffeeba;
-        border-radius: 8px;
-    }
-    .error-file-item {
-        color: #856404;
-        margin: 5px 0;
-    }
-</style>
+{% block table_headers %}
+<th>Dosya/Dizin</th>
+<th>Tür</th>
+<th>İşlemler</th>
 {% endblock %}
 
-{% block content %}
-<div class="container">
-    <h2 class="mb-4">
-        <i class="bi bi-search"></i> Hassas Veri Taraması
-    </h2>
+{% block table_content %}
+<tr>
+    <td colspan="3">
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="regex-search-form" method="post" action="{% url 'regex:regex_search_results_view' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
 
-    <div class="search-container">
-        <form method="post" action="{% url 'regex:regex_search_results_view' %}" class="needs-validation" novalidate>
-            {% csrf_token %}
-            
-            <div class="row mb-3">
-                <div class="col-md-12">
-                    <label for="directory" class="form-label">Arama Yapılacak Dizin</label>
-                    <input type="text" class="form-control" id="directory" name="directory" 
-                           placeholder="/mnt/c/Users/Melek/Downloads" value="{{ search_path|default:'' }}" required>
-                    <div class="form-text">
-                        WSL için örnek: /mnt/c/Users/Melek/Downloads<br>
-                        Windows için örnek: C:\Users\Melek\Downloads
+                    <div class="form-group">
+                        <label for="directory_path"><strong>Dizin Yolu:</strong></label>
+                        <input type="text" class="form-control" id="directory_path" name="directory_path" required placeholder="/etc, /home, /var gibi...">
                     </div>
-                </div>
-            </div>
 
-            <div class="row mb-3">
-                <div class="col-12">
-                    <label class="form-label">Dosya Türleri</label>
-                    <div class="file-types-container">
-                        <div class="file-type-checkbox">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="file_types" value="txt" id="txt" checked>
-                                <label class="form-check-label" for="txt">
-                                    Metin Dosyaları (.txt)
-                                </label>
-                            </div>
+                    <div class="form-group mt-3">
+                        <label><strong>Regex Kategorileri:</strong></label>
+                        <div id="category-checkboxes" class="form-check d-flex flex-wrap gap-3 border rounded p-3" style="max-height: 240px; overflow-y: auto;">
+                            <!-- JavaScript ile doldurulacak -->
                         </div>
-                        <div class="file-type-checkbox">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="file_types" value="csv" id="csv" checked>
-                                <label class="form-check-label" for="csv">
-                                    CSV Dosyaları (.csv)
-                                </label>
-                            </div>
-                        </div>
-                        <div class="file-type-checkbox">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="file_types" value="json" id="json" checked>
-                                <label class="form-check-label" for="json">
-                                    JSON Dosyaları (.json)
-                                </label>
-                            </div>
-                        </div>
-                        <div class="file-type-checkbox">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="file_types" value="docx" id="docx" checked>
-                                <label class="form-check-label" for="docx">
-                                    Word Dosyaları (.docx)
-                                </label>
-                            </div>
+                        <input type="hidden" name="selected_categories" id="selected_categories">
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-outline-success btn-sm me-2" id="select-all-btn">Tümünü Seç</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="deselect-all-btn">Temizle</button>
                         </div>
                     </div>
-                </div>
+
+                    <div class="form-group mt-3">
+                        <label><strong>Tarama Tipi:</strong></label><br>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="scan_type" id="scan_type_full" value="full" checked>
+                            <label class="form-check-label" for="scan_type_full">Tam Tarama</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="scan_type" id="scan_type_partial" value="partial">
+                            <label class="form-check-label" for="scan_type_partial">Kısmi Tarama (İlk 100 Satır)</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-4 w-100">🔍 Aramayı Başlat</button>
+                </form>
             </div>
-
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-search"></i> Taramayı Başlat
-                </button>
-            </div>
-        </form>
-    </div>
-
-    {% if error_message %}
-    <div class="alert alert-danger" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        {{ error_message }}
-    </div>
-    {% endif %}
-
-    {% if results %}
-    <div class="results-container">
-        <h3 class="mb-3">Tarama Sonuçları</h3>
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            Taranan dosya sayısı: {{ processed_files_count }} | Eşleşme bulunan dosya sayısı: {{ matched_files_count }}
         </div>
-        
-        {% for file_path, matches in results.items %}
-        <div class="file-result">
-            <h5 class="mb-3">
-                <i class="bi bi-file-text"></i> {{ file_path }}
-            </h5>
-            
-            {% for pattern_name, pattern_matches in matches.items %}
-            <div class="pattern-matches">
-                <h6 class="text-primary">{{ pattern_name }}</h6>
-                {% for match in pattern_matches %}
-                <div class="match-item">{{ match }}</div>
-                {% endfor %}
-            </div>
-            {% endfor %}
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    {% if error_files %}
-    <div class="error-files">
-        <h5 class="mb-3">
-            <i class="bi bi-exclamation-triangle-fill"></i> Hata Oluşan Dosyalar
-        </h5>
-        {% for error in error_files %}
-        <div class="error-file-item">{{ error }}</div>
-        {% endfor %}
-    </div>
-    {% endif %}
-</div>
+    </td>
+</tr>
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
 <script>
-    // Form validation
-    (function () {
-        'use strict'
-        var forms = document.querySelectorAll('.needs-validation')
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault()
-                    event.stopPropagation()
+    document.addEventListener('DOMContentLoaded', function () {
+        const categorySelectBox = document.getElementById('category-checkboxes');
+        const hiddenInput = document.getElementById('selected_categories');
+        const selectAllBtn = document.getElementById('select-all-btn');
+        const deselectAllBtn = document.getElementById('deselect-all-btn');
+
+        const nameMapping = {
+            personalInfo: 'Kişisel Bilgiler',
+            financialData: 'Finansal Veriler',
+            healthData: 'Sağlık Verileri',
+            corporateData: 'Kurumsal ve Ticari Veriler',
+            locationData: 'Konum ve Seyahat Verileri',
+            authData: 'Giriş ve Kimlik Doğrulama',
+            educationData: 'Eğitim ve Sertifikalar',
+            systemSecurityData: 'Sistem ve Güvenlik Kayıtları'
+        };
+
+        fetch('{% url "regex:api_get_regex_patterns" %}')
+            .then(response => response.json())
+            .then(data => {
+                categorySelectBox.innerHTML = '';
+                for (const key in data) {
+                    if (data.hasOwnProperty(key)) {
+                        const label = nameMapping[key] || key;
+                        const checkboxDiv = document.createElement('div');
+                        checkboxDiv.className = 'form-check';
+                        checkboxDiv.innerHTML = `
+                            <input class="form-check-input category-checkbox" type="checkbox" id="cat-${key}" value="${key}">
+                            <label class="form-check-label" for="cat-${key}">${label}</label>
+                        `;
+                        categorySelectBox.appendChild(checkboxDiv);
+                    }
                 }
-                form.classList.add('was-validated')
-            }, false)
-        })
-    })()
+            });
+
+        function updateSelectedCategories() {
+            const selected = Array.from(document.querySelectorAll('.category-checkbox:checked')).map(cb => cb.value);
+            hiddenInput.value = selected.join(',');
+        }
+
+        document.addEventListener('change', function (e) {
+            if (e.target.classList.contains('category-checkbox')) {
+                updateSelectedCategories();
+            }
+        });
+
+        selectAllBtn.addEventListener('click', function () {
+            document.querySelectorAll('.category-checkbox').forEach(cb => cb.checked = true);
+            updateSelectedCategories();
+        });
+
+        deselectAllBtn.addEventListener('click', function () {
+            document.querySelectorAll('.category-checkbox').forEach(cb => cb.checked = false);
+            updateSelectedCategories();
+        });
+    });
 </script>
 {% endblock %}
