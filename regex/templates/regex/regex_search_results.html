@@ -1,61 +1,123 @@
-{% extends "list/base_table.html" %}
+{% extends "regex/base.html" %}
 {% load static %}
 
-{% block title %}Regex Arama Sonuçları{% endblock %}
-{% block table_title %}Regex Arama Sonuçları{% endblock %}
+{% block regex_title %}Regex Arama Sonuçları{% endblock %}
 
-{% block table_content %}
-<tr>
-    <td colspan="3">
-        <div class="card mb-4">
-            <div class="card-body">
-
-                {% if error_message %}
-                    <div class="alert alert-danger" role="alert">
-                        {{ error_message }}
-                    </div>
-                {% elif results %}
-                    <p><strong>📂 Aranan Yol:</strong> {{ search_path }}</p>
-                    <p><strong>🔍 İşlenen Dosya Sayısı:</strong> {{ processed_files_count }}</p>
-                    <p><strong>✅ Eşleşme Bulunan Dosya Sayısı:</strong> {{ matched_files_count }}</p>
-
-                    <div class="table-responsive mt-4">
-                        <table class="table table-bordered table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Dosya Yolu</th>
-                                    <th>Eşleşen Patternler</th>
-                                    <th>İşlem</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for result in results %}
-                                    <tr>
-                                        <td class="text-break">{{ result.file_path }}</td>
-                                        <td>
-                                            {% for pattern_type, count in result.pattern_counts.items %}
-                                                <span class="badge bg-primary me-1">{{ pattern_type }}: {{ count }}</span>
-                                            {% endfor %}
-                                        </td>
-                                        <td>
-                                            <a class="btn btn-outline-info btn-sm"
-                                               href="{% url 'regex:regex_search_detail_view' file_path=result.file_path|urlencode %}">
-                                                Detay Görüntüle
-                                            </a>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <div class="alert alert-warning" role="alert">
-                        Seçilen kategorilerde eşleşme bulunamadı.
-                    </div>
-                {% endif %}
-
+{% block regex_content %}
+<div class="card mb-4">
+    <div class="card-body">
+        {% if error_message %}
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                {{ error_message }}
             </div>
-        </div>
-    </td>
-</tr>
+        {% endif %}
+
+        {% if results or partial_results %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <strong>📂 Aranan Yol:</strong> {{ search_path }}<br>
+                <strong>🔍 İşlenen Dosya Sayısı:</strong> {{ processed_files_count }}<br>
+                <strong>✅ Eşleşme Bulunan Dosya Sayısı:</strong> {{ matched_files_count }}<br>
+                {% if scan_duration %}
+                    <strong>⏱️ Tarama Süresi:</strong> {{ scan_duration }} saniye
+                {% endif %}
+            </div>
+
+            {% if error_files %}
+                <div class="alert alert-warning mt-3">
+                    <h5><i class="bi bi-exclamation-triangle-fill me-2"></i>Okunamayan Dosyalar</h5>
+                    <p class="mb-2">Aşağıdaki dosyalar okunamadı veya erişim izni yok:</p>
+                    <ul class="list-group">
+                        {% for file in error_files %}
+                            <li class="list-group-item text-danger">{{ file }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            {% if skipped_files %}
+                <div class="alert alert-secondary mt-3">
+                    <h5><i class="bi bi-skip-forward-fill me-2"></i>Atlanan Dosyalar</h5>
+                    <p class="mb-2">Aşağıdaki dosyalar boyut, tür veya güvenlik nedeniyle atlandı:</p>
+                    <ul class="list-group">
+                        {% for file in skipped_files %}
+                            <li class="list-group-item text-muted">{{ file }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            <div class="results-container mt-4">
+                {% for result in results %}
+                    <div class="file-result">
+                        <h5 class="mb-3">
+                            <i class="bi bi-file-text"></i> {{ result.file_path }}
+                        </h5>
+                        {% for pattern_type, matches in result.matches.items %}
+                            <div class="pattern-matches">
+                                <h6 class="text-primary">{{ pattern_type }}</h6>
+                                {% for match in matches %}
+                                    <div class="match-item">
+                                        <span>{{ match }}</span>
+                                        <span class="action-btns">
+                                            <button class="btn btn-sm btn-warning" disabled>Mask</button>
+                                            <button class="btn btn-sm btn-success" disabled>Encrypt</button>
+                                        </span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                        <div class="mt-3">
+                            <a class="btn btn-outline-info btn-sm"
+                               href="{% url 'regex:regex_search_detail_view' file_path=result.file_path|urlencode %}">
+                                <i class="bi bi-search"></i> Detaylı Görüntüle
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Seçilen kategorilerde eşleşme bulunamadı.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .results-container {
+        margin-top: 20px;
+    }
+    .file-result {
+        background-color: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .pattern-matches {
+        margin-top: 10px;
+        padding-left: 20px;
+    }
+    .match-item {
+        background-color: #f8f9fa;
+        padding: 5px 10px;
+        border-radius: 4px;
+        margin: 2px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .action-btns {
+        margin-left: 10px;
+    }
+    .list-group-item {
+        word-break: break-all;
+    }
+</style>
 {% endblock %}

@@ -41,11 +41,51 @@
             padding: 0.1rem 0.2rem;
             border-radius: 0.2rem;
         }
+        /* Navigation styles */
+        .regex-nav {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .regex-nav .nav-link {
+            color: #495057;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            transition: all 0.3s ease;
+        }
+        .regex-nav .nav-link:hover {
+            background-color: #e9ecef;
+        }
+        .regex-nav .nav-link.active {
+            background-color: #007bff;
+            color: white;
+        }
     </style>
 {% endblock extra_css %}
 
-{# This block will contain the specific content of regex pages like regex_search.html #}
 {% block content %}
+<div class="container">
+    <nav class="regex-nav">
+        <ul class="nav nav-pills">
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'regex_search' %}active{% endif %}" 
+                   href="{% url 'regex:regex_search' %}">
+                    <i class="bi bi-search"></i> Regex Arama
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'regex_search_results_view' %}active{% endif %}" 
+                   href="{% url 'regex:regex_search_results_view' %}">
+                    <i class="bi bi-list-check"></i> Tarama Sonuçları
+                </a>
+            </li>
+        </ul>
+    </nav>
+    
+    {% block regex_content %}
+    {% endblock regex_content %}
+</div>
 {% endblock content %}
 
 {% block extra_js %}

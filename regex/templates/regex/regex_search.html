@@ -1,67 +1,81 @@
-{% extends "list/base_table.html" %}
+{% extends "regex/base.html" %}
 {% load static %}
 
-{% block title %}Regex Arama{% endblock %}
-{% block table_title %}Regex Arama{% endblock %}
+{% block regex_title %}Regex Arama{% endblock %}
 
-{% block table_headers %}
-<th>Dosya/Dizin</th>
-<th>Tür</th>
-<th>İşlemler</th>
-{% endblock %}
+{% block regex_content %}
+<div class="card mb-4">
+    <div class="card-body">
+        <form id="regex-search-form" method="post" action="{% url 'regex:regex_search_results_view' %}">
+            {% csrf_token %}
 
-{% block table_content %}
-<tr>
-    <td colspan="3">
-        <div class="card mb-4">
-            <div class="card-body">
-                <form id="regex-search-form" method="post" action="{% url 'regex:regex_search_results_view' %}" enctype="multipart/form-data">
-                    {% csrf_token %}
-
-                    <div class="form-group">
-                        <label for="directory_path"><strong>Dizin Yolu:</strong></label>
-                        <input type="text" class="form-control" id="directory_path" name="directory_path" required placeholder="/etc, /home, /var gibi...">
-                    </div>
-
-                    <div class="form-group mt-3">
-                        <label><strong>Regex Kategorileri:</strong></label>
-                        <div id="category-checkboxes" class="form-check d-flex flex-wrap gap-3 border rounded p-3" style="max-height: 240px; overflow-y: auto;">
-                            <!-- JavaScript ile doldurulacak -->
-                        </div>
-                        <input type="hidden" name="selected_categories" id="selected_categories">
-                        <div class="mt-2">
-                            <button type="button" class="btn btn-outline-success btn-sm me-2" id="select-all-btn">Tümünü Seç</button>
-                            <button type="button" class="btn btn-outline-danger btn-sm" id="deselect-all-btn">Temizle</button>
-                        </div>
-                    </div>
-
-                    <div class="form-group mt-3">
-                        <label><strong>Tarama Tipi:</strong></label><br>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="scan_type" id="scan_type_full" value="full" checked>
-                            <label class="form-check-label" for="scan_type_full">Tam Tarama</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input" type="radio" name="scan_type" id="scan_type_partial" value="partial">
-                            <label class="form-check-label" for="scan_type_partial">Kısmi Tarama (İlk 100 Satır)</label>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary mt-4 w-100">🔍 Aramayı Başlat</button>
-                </form>
+            <div class="form-group mb-4">
+                <label for="directory_path" class="form-label"><strong>Dizin Yolu:</strong></label>
+                <input type="text" class="form-control" id="directory_path" name="directory_path" required 
+                       placeholder="/etc, /home, /var gibi..." aria-describedby="directoryHelp">
+                <div id="directoryHelp" class="form-text">Taranacak dizinin tam yolunu girin</div>
             </div>
-        </div>
-    </td>
-</tr>
+
+            <div class="form-group mb-4">
+                <label class="form-label"><strong>Veri Türü Filtreleri:</strong></label>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="btn-group" role="group" aria-label="Kategori seçim butonları">
+                        <button type="button" class="btn btn-outline-success" id="select-all-btn">
+                            <i class="bi bi-check-all"></i> Tümünü Seç
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" id="deselect-all-btn">
+                            <i class="bi bi-x-lg"></i> Tümünü Temizle
+                        </button>
+                    </div>
+                </div>
+                <div id="category-filters" class="d-flex flex-wrap gap-2" role="group" aria-label="Veri türü filtreleri">
+                    <!-- JavaScript ile doldurulacak -->
+                </div>
+                <input type="hidden" name="selected_categories" id="selected_categories">
+            </div>
+
+            <div class="form-group mb-4">
+                <label class="form-label"><strong>Tarama Tipi:</strong></label>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="scan_type" id="scan_type_full" value="full" checked>
+                    <label class="form-check-label" for="scan_type_full">Tam Tarama</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="scan_type" id="scan_type_partial" value="partial">
+                    <label class="form-check-label" for="scan_type_partial">Kısmi Tarama (İlk 100 Satır)</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100" id="search-button">
+                <i class="bi bi-search"></i> Aramayı Başlat
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="loading-overlay d-none" role="alert" aria-live="polite">
+    <div class="spinner-border text-light" role="status">
+        <span class="visually-hidden">Yükleniyor...</span>
+    </div>
+    <div class="mt-2 text-light">Tarama yapılıyor, lütfen bekleyin...</div>
+</div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
+{{ block.super }}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const categorySelectBox = document.getElementById('category-checkboxes');
+        const categoryFilters = document.getElementById('category-filters');
         const hiddenInput = document.getElementById('selected_categories');
         const selectAllBtn = document.getElementById('select-all-btn');
         const deselectAllBtn = document.getElementById('deselect-all-btn');
+        const searchForm = document.getElementById('regex-search-form');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const directoryInput = document.getElementById('directory_path');
+        let isSubmitting = false;
+
+        console.log('Script loaded');
 
         const nameMapping = {
             personalInfo: 'Kişisel Bilgiler',
@@ -74,44 +88,177 @@
             systemSecurityData: 'Sistem ve Güvenlik Kayıtları'
         };
 
-        fetch('{% url "regex:api_get_regex_patterns" %}')
-            .then(response => response.json())
-            .then(data => {
-                categorySelectBox.innerHTML = '';
-                for (const key in data) {
-                    if (data.hasOwnProperty(key)) {
-                        const label = nameMapping[key] || key;
-                        const checkboxDiv = document.createElement('div');
-                        checkboxDiv.className = 'form-check';
-                        checkboxDiv.innerHTML = `
-                            <input class="form-check-input category-checkbox" type="checkbox" id="cat-${key}" value="${key}">
-                            <label class="form-check-label" for="cat-${key}">${label}</label>
-                        `;
-                        categorySelectBox.appendChild(checkboxDiv);
+        const iconMapping = {
+            personalInfo: 'bi-person',
+            financialData: 'bi-currency-dollar',
+            healthData: 'bi-heart-pulse',
+            corporateData: 'bi-building',
+            locationData: 'bi-geo-alt',
+            authData: 'bi-shield-lock',
+            educationData: 'bi-mortarboard',
+            systemSecurityData: 'bi-shield-check'
+        };
+
+        // Form gönderilmeden önce kontrol
+        searchForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log('Form submission started');
+            
+            if (isSubmitting) {
+                console.log('Form is already submitting');
+                return;
+            }
+
+            const selectedCategories = hiddenInput.value.split(',').filter(cat => cat);
+            console.log('Selected categories:', selectedCategories);
+            
+            if (selectedCategories.length === 0) {
+                alert('Lütfen en az bir veri türü seçin.');
+                return;
+            }
+
+            if (!directoryInput.value.trim()) {
+                alert('Lütfen bir dizin yolu girin.');
+                return;
+            }
+
+            // Prevent double submission
+            isSubmitting = true;
+            const submitButton = document.getElementById('search-button');
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Tarama Yapılıyor...';
+
+            console.log('Form validation passed, showing loading overlay');
+            loadingOverlay.classList.remove('d-none');
+
+            try {
+                const formData = new FormData(searchForm);
+                const response = await fetch(searchForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            });
 
-        function updateSelectedCategories() {
-            const selected = Array.from(document.querySelectorAll('.category-checkbox:checked')).map(cb => cb.value);
-            hiddenInput.value = selected.join(',');
-        }
-
-        document.addEventListener('change', function (e) {
-            if (e.target.classList.contains('category-checkbox')) {
-                updateSelectedCategories();
+                const html = await response.text();
+                document.open();
+                document.write(html);
+                document.close();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Tarama sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i class="bi bi-search"></i> Aramayı Başlat';
+                loadingOverlay.classList.add('d-none');
+            } finally {
+                isSubmitting = false;
             }
         });
 
+        // Pattern'ları yükle
+        console.log('Fetching patterns...');
+        fetch('{% url "regex:api_get_regex_patterns" %}')
+            .then(response => {
+                console.log('Pattern API response:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Patterns loaded:', Object.keys(data));
+                categoryFilters.innerHTML = '';
+                for (const key in data) {
+                    if (data.hasOwnProperty(key)) {
+                        const label = nameMapping[key] || key;
+                        const icon = iconMapping[key] || 'bi-tag';
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'btn btn-outline-primary filter-btn';
+                        button.dataset.category = key;
+                        button.setAttribute('aria-pressed', 'false');
+                        button.innerHTML = `
+                            <i class="bi ${icon}"></i>
+                            ${label}
+                        `;
+                        button.addEventListener('click', function() {
+                            const isPressed = this.classList.toggle('active');
+                            this.setAttribute('aria-pressed', isPressed);
+                            updateSelectedCategories();
+                        });
+                        categoryFilters.appendChild(button);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching patterns:', error);
+                categoryFilters.innerHTML = '<div class="alert alert-danger">Pattern bilgileri yüklenirken bir hata oluştu.</div>';
+            });
+
+        function updateSelectedCategories() {
+            const selected = Array.from(document.querySelectorAll('.filter-btn.active'))
+                .map(btn => btn.dataset.category);
+            hiddenInput.value = selected.join(',');
+            console.log('Updated selected categories:', selected);
+        }
+
         selectAllBtn.addEventListener('click', function () {
-            document.querySelectorAll('.category-checkbox').forEach(cb => cb.checked = true);
+            console.log('Select all clicked');
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.add('active');
+                btn.setAttribute('aria-pressed', 'true');
+            });
             updateSelectedCategories();
         });
 
         deselectAllBtn.addEventListener('click', function () {
-            document.querySelectorAll('.category-checkbox').forEach(cb => cb.checked = false);
+            console.log('Deselect all clicked');
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-pressed', 'false');
+            });
             updateSelectedCategories();
         });
     });
 </script>
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .filter-btn {
+        transition: all 0.3s ease;
+        min-width: 150px;
+        margin: 5px;
+    }
+    .filter-btn.active {
+        background-color: #0d6efd;
+        color: white;
+    }
+    .filter-btn i {
+        margin-right: 5px;
+    }
+    #category-filters {
+        margin-top: 15px;
+        padding: 15px;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        background-color: #f8f9fa;
+    }
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+</style>
 {% endblock %}
