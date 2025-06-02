@@ -1,20 +1,24 @@
-# Python 3.11 tabanlı minimal imaj
-FROM python:3.11-slim
+ARG PYTHON_VERSION=3.12-slim
 
-# Çalışma dizini
-WORKDIR /app
+FROM python:${PYTHON_VERSION}
 
-# Projeyi kopyala
-COPY . /app
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
-# pip güncelle, bağımlılıkları yükle
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN mkdir -p /code
 
-# Django statik dosyaları topla
+WORKDIR /code
+
+COPY requirements.txt /tmp/requirements.txt
+RUN set -ex && \
+    pip install --upgrade pip && \
+    pip install -r /tmp/requirements.txt && \
+    rm -rf /root/.cache/
+COPY . /code
+
+ENV SECRET_KEY "QhFPjM6NeGafSDsaX0U71q5GSLvqfrqPPLzmbjfhIF0pk5LiDQ"
 RUN python manage.py collectstatic --noinput
 
-# 8000 portunu aç
 EXPOSE 8000
 
-# Gunicorn ile başlat
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "wfe.wsgi:application"] 
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "wfe.wsgi:application"]
