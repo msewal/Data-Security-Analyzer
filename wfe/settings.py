@@ -30,6 +30,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'data-sec-analyzer-fra.fly.dev',
+    '.fly.dev',  # Allow all Fly.io subdomains
 ]
 
 
