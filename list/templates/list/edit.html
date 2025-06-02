@@ -1,97 +1,55 @@
-{% extends "list/base_table.html" %}
-{% load static %}
+{% extends 'list/base_table.html' %}
 
 {% block title %}Dosya Düzenle{% endblock %}
 
-{% block table_title %}Dosya Düzenle{% endblock %}
-
-{% block table_content %}
-{% if error %}
-<div class="alert alert-danger" role="alert">
-    {{ error }}
-</div>
-    {% else %}
-<tr>
-    <td colspan="9">
-        <form id="editForm" method="post" action="{% url 'list:api_savefile' %}">
-            {% csrf_token %}
-            <input type="hidden" name="path" value="{{ path }}">
-            <div class="mb-3">
-                <textarea class="form-control" name="text" rows="20">{{ data }}</textarea>
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Dosya Düzenle: {{ path }}</h3>
+                </div>
+                <div class="card-body">
+                    <form id="editForm" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="path" value="{{ path }}">
+                        <div class="form-group">
+                            <textarea id="content" name="content" class="form-control" rows="20" style="font-family: monospace;">{{ content }}</textarea>
+                        </div>
+                        <div class="form-group mt-3">
+                            <button type="submit" class="btn btn-primary">Kaydet</button>
+                            <a href="{% url 'list:index' %}" class="btn btn-secondary">İptal</a>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <button type="submit" class="btn btn-primary">Kaydet</button>
-        </form>
-    </td>
-</tr>
-    {% endif %}
-{% endblock %}
+        </div>
+    </div>
+</div>
 
-{% block scripts %}
-    <script>
-document.getElementById('editForm').addEventListener('submit', function(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
-
-    fetch(form.action, {
-        method: form.method,
-        body: formData,
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
+<script>
+document.getElementById('editForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('{% url "list:save_file" %}', {
+        method: 'POST',
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Başarılı bildirimini gösterme
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-success alert-dismissible fade show';
-            alertDiv.setAttribute('role', 'alert');
-            alertDiv.innerHTML = `
-                ${data.message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-            document.querySelector('.container').prepend(alertDiv);
-
-            // Bildirimi otomatik kapatma
-            setTimeout(() => {
-                const bsAlert = bootstrap.Alert.getOrCreateInstance(alertDiv);
-                bsAlert.close();
-            }, 5000);
-
+            alert('Dosya başarıyla kaydedildi.');
+            window.location.href = '{% url "list:index" %}';
         } else {
-            // Hata bildirimini gösterme
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-            alertDiv.setAttribute('role', 'alert');
-            alertDiv.innerHTML = `
-                Hata: ${data.error}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-             document.querySelector('.container').prepend(alertDiv);
-             // Bildirimi otomatik kapatma
-            setTimeout(() => {
-                const bsAlert = bootstrap.Alert.getOrCreateInstance(alertDiv);
-                bsAlert.close();
-            }, 5000);
+            alert('Hata: ' + data.error);
         }
     })
     .catch(error => {
-        // Genel hata durumunda bildirim gösterme
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-        alertDiv.setAttribute('role', 'alert');
-        alertDiv.innerHTML = `
-            Bir hata oluştu: ${error}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-         document.querySelector('.container').prepend(alertDiv);
-         // Bildirimi otomatik kapatma
-        setTimeout(() => {
-            const bsAlert = bootstrap.Alert.getOrCreateInstance(alertDiv);
-            bsAlert.close();
-        }, 5000);
+        alert('Hata: ' + error);
     });
 });
-    </script>
+</script>
 {% endblock %}

@@ -6,93 +6,76 @@
 {% block table_title %}Dosya İşlemleri{% endblock %}
 
 {% block table_headers %}
-<th>İşlem Adı</th>
-<th>Açıklama</th>
+<th>Ad</th>
+<th>Tür</th>
 <th>İşlemler</th>
 {% endblock %}
 
 {% block table_content %}
+{% for item in items %}
 <tr>
-    <td>Dosya Taraması</td>
-    <td>Seçilen dosyayı virüs ve zararlı yazılımlara karşı tarar</td>
     <td>
-        <button class="btn btn-sm btn-primary" onclick="runOperation('malware_scan')">
-            <i class="bi bi-shield-check"></i> Tarama Başlat
-        </button>
+        {% if item.is_dir %}
+        <i class="fas fa-folder text-warning"></i>
+        {% else %}
+        <i class="fas fa-file text-primary"></i>
+        {% endif %}
+        {{ item.name }}
     </td>
-                                        </tr>
-<tr>
-    <td>Dosya Sınıflandırma</td>
-    <td>Dosyayı içeriğine göre sınıflandırır (kişisel, şüpheli vb.)</td>
-                                            <td>
-        <button class="btn btn-sm btn-info" onclick="runOperation('classify')">
-            <i class="bi bi-tags"></i> Sınıflandır
-        </button>
-                                            </td>
-</tr>
-<tr>
-    <td>Karantina</td>
-    <td>Şüpheli dosyayı karantina klasörüne taşır</td>
-                                            <td>
-        <button class="btn btn-sm btn-warning" onclick="runOperation('quarantine')">
-            <i class="bi bi-shield-lock"></i> Karantinaya Al
-                                                    </button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-    <td>Regex Arama</td>
-    <td>Dosya içeriğinde regex ile arama yapar</td>
     <td>
-        <button class="btn btn-sm btn-secondary" onclick="showRegexSearch()">
-            <i class="bi bi-search"></i> Regex Ara
-        </button>
-                                            </td>
-                                        </tr>
+        {% if item.is_dir %}
+        Klasör
+        {% else %}
+        Dosya
+        {% endif %}
+    </td>
+    <td>
+        <div class="btn-group">
+            {% if item.is_dir %}
+            <a href="?path={{ item.path }}" class="btn btn-sm btn-info">
+                <i class="fas fa-folder-open"></i>
+            </a>
+            {% else %}
+            <a href="{% url 'list:file_preview' %}?path={{ item.path }}" class="btn btn-sm btn-info">
+                <i class="fas fa-eye"></i>
+            </a>
+            <a href="{% url 'list:download_file' %}?path={{ item.path }}" class="btn btn-sm btn-success">
+                <i class="fas fa-download"></i>
+            </a>
+            {% endif %}
+            <button type="button" class="btn btn-sm btn-danger" onclick="deleteItem('{{ item.path }}')">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    </td>
+</tr>
+{% endfor %}
 {% endblock %}
 
-{% block scripts %}
+{% block extra_js %}
 <script>
-function runOperation(type) {
-    const path = prompt('Lütfen işlem yapılacak dosyanın tam yolunu girin:');
-    if (!path) return;
-
-    let url = '';
-    switch(type) {
-        case 'malware_scan':
-            url = `/list/api/malware_scan?path=${encodeURIComponent(path)}`;
-            break;
-        case 'classify':
-            url = `/list/api/classify_file?path=${encodeURIComponent(path)}`;
-            break;
-        case 'quarantine':
-            url = `/list/api/quarantine?path=${encodeURIComponent(path)}`;
-            break;
-    }
-
-    if (url) {
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert('Hata: ' + data.msg);
+function deleteItem(path) {
+    if (confirm('Bu öğeyi silmek istediğinizden emin misiniz?')) {
+        fetch('{% url "list:delete_item" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `path=${encodeURIComponent(path)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
             } else {
-                    alert('İşlem başarılı: ' + JSON.stringify(data, null, 2));
-                }
-            })
-            .catch(error => {
-                alert('Bir hata oluştu: ' + error);
-            });
+                alert('Hata: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Bir hata oluştu: ' + error);
+        });
     }
-}
-
-function showRegexSearch() {
-    const path = prompt('Lütfen arama yapılacak dosyanın tam yolunu girin:');
-    if (!path) return;
-    
-    const pattern = prompt('Lütfen arama yapılacak regex desenini girin:');
-    if (!pattern) return;
-
-    window.location.href = `/list/regex_search?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}`;
 }
 </script>
 {% endblock %}

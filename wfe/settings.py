@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-mz^!q&v&$(tfgxo!hd2f3*nt=el=jq0)b5!)!khmumu3u(h63a')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -37,16 +37,16 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
-    'list.apps.ListConfig',
-    'bash.apps.BashConfig',
-    'malware.apps.MalwareConfig',
-    'regex.apps.RegexConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'list.apps.ListConfig',
+    'regex',
+    'malware',
+    'bash',
     # 'quarantine',
     
 ]

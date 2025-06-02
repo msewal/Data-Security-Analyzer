@@ -8,13 +8,14 @@ class File(models.Model):
     """Model for storing file information."""
     name = models.CharField(max_length=255)
     path = models.CharField(max_length=1000)
+    is_dir = models.BooleanField(default=False)
     size = models.BigIntegerField(default=0)
+    permissions = models.CharField(max_length=10)
+    owner = models.CharField(max_length=100)
+    group = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
-    is_directory = models.BooleanField(default=False)
-    owner = models.CharField(max_length=100, blank=True)
-    group = models.CharField(max_length=100, blank=True)
-    permissions = models.CharField(max_length=10, blank=True)
+    accessed_at = models.DateTimeField(auto_now=True)
     mime_type = models.CharField(max_length=100, blank=True)
     is_quarantined = models.BooleanField(default=False)
     quarantine_date = models.DateTimeField(null=True, blank=True)
@@ -23,10 +24,12 @@ class File(models.Model):
     scan_date = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        verbose_name = 'Dosya'
+        verbose_name_plural = 'Dosyalar'
         ordering = ['name']
         indexes = [
             models.Index(fields=['path']),
-            models.Index(fields=['is_directory']),
+            models.Index(fields=['is_dir']),
             models.Index(fields=['is_quarantined']),
             models.Index(fields=['scan_status']),
         ]

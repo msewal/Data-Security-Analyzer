@@ -1,25 +1,20 @@
 import os
 import stat
+import pwd
+import grp
 from datetime import datetime
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, JsonResponse, FileResponse, Http404
-from django.contrib import messages
-import shutil
-from django.conf import settings
-
 from django.shortcuts import render
-
-import json
+from django.http import JsonResponse, FileResponse, HttpResponse
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
-import time
-import re
-import subprocess
-from urllib.parse import unquote
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+import mimetypes
+import magic
 import urllib.parse
-from django.utils import timezone
-from .models import File
 
 def format_size(size):
+    """Convert file size to human readable format"""
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
         if size < 1024.0:
             return f"{size:.1f} {unit}"
@@ -27,344 +22,253 @@ def format_size(size):
     return f"{size:.1f} PB"
 
 def get_owner(uid):
+    """Get owner name from uid"""
     try:
-        import pwd
         return pwd.getpwuid(uid).pw_name
-    except ImportError:
-        try:
-            import win32security
-            import win32api
-            import win32con
-            sid = win32security.GetFileSecurity(str(uid), win32security.OWNER_SECURITY_INFORMATION).GetSecurityDescriptorOwner()
-            name, domain, type = win32security.LookupAccountSid(None, sid)
-            return f"{domain}\\{name}"
-        except ImportError:
-            return str(uid)
-        except Exception:
-            return str(uid)
+    except:
+        return str(uid)
 
 def get_group(gid):
+    """Get group name from gid"""
     try:
-        import grp
         return grp.getgrgid(gid).gr_name
-    except ImportError:
-        try:
-            import win32security
-            import win32api
-            import win32con
-            sid = win32security.GetFileSecurity(str(gid), win32security.GROUP_SECURITY_INFORMATION).GetSecurityDescriptorGroup()
-            name, domain, type = win32security.LookupAccountSid(None, sid)
-            return f"{domain}\\{name}"
-        except ImportError:
-            return str(gid)
-        except Exception:
-            return str(gid)
+    except:
+        return str(gid)
 
 def get_items(path):
-    """
-    Returns a list of items (files and directories) in the given path.
-    """
+    """Get list of items in directory"""
+    items = []
     try:
-        items = []
-        for entry in os.listdir(path):
-            full_path = os.path.join(path, entry)
-            items.append({
-                "name": entry,
-                "is_dir": os.path.isdir(full_path),
-                "path": full_path
-            })
-        return items
+        for item in os.listdir(path):
+            full_path = os.path.join(path, item)
+            try:
+                stat_info = os.stat(full_path)
+                is_dir = stat.S_ISDIR(stat_info.st_mode)
+                
+                # Get file type
+                if is_dir:
+                    file_type = 'Klasör'
+                else:
+                    mime = magic.Magic(mime=True)
+                    mime_type = mime.from_file(full_path)
+                    file_type = mime_type.split('/')[-1].upper()
+                
+                # Get file size
+                if is_dir:
+                    size = '-'
+                else:
+                    size = format_size(stat_info.st_size)
+                
+                items.append({
+                    'name': item,
+                    'path': full_path,
+                    'is_dir': is_dir,
+                    'type': file_type,
+                    'size': size,
+                    'permissions': oct(stat_info.st_mode)[-3:],
+                    'owner': get_owner(stat_info.st_uid),
+                    'group': get_group(stat_info.st_gid),
+                    'created_at': datetime.fromtimestamp(stat_info.st_ctime).strftime('%Y-%m-%d %H:%M:%S'),
+                    'modified_at': datetime.fromtimestamp(stat_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                    'accessed_at': datetime.fromtimestamp(stat_info.st_atime).strftime('%Y-%m-%d %H:%M:%S')
+                })
+            except Exception as e:
+                print(f"Error getting info for {full_path}: {str(e)}")
     except Exception as e:
-        return []
+        print(f"Error listing directory {path}: {str(e)}")
+    return sorted(items, key=lambda x: (not x['is_dir'], x['name'].lower()))
 
 def index(request):
-    current_path = '/'
-    items = get_items(current_path)
-    context = {
-        'current_path': current_path,
-        'parent_path': os.path.dirname(current_path) if os.path.dirname(current_path) != current_path else None,
-        'items': items,
-        'error': None
-    }
-    return render(request, 'list/index.html', context)
+    """Main file listing page"""
+    path = request.GET.get('path', '/')
+    if not os.path.exists(path):
+        path = '/'
+    
+    # Get parent directory
+    parent_path = os.path.dirname(path) if path != '/' else None
+    
+    files = get_items(path)
+    return render(request, 'list/index.html', {
+        'files': files,
+        'current_path': path,
+        'parent_path': parent_path
+    })
 
 def dashboard(request):
+    """Dashboard page"""
     return render(request, 'list/dashboard.html')
 
 def procedure(request):
-    path = request.GET.get("path", "/")  # veya varsayılan dizin
-    items = get_items(path)  # böyle bir fonksiyon olmalı
-    return render(request, "list/procedure.html", {
-        "items": items,
-        "current_path": path,
-        "parent_path": os.path.dirname(path)
+    """Show items in path"""
+    path = request.GET.get('path', '/')
+    if not os.path.exists(path):
+        path = '/'
+    
+    # Get parent directory
+    parent_path = os.path.dirname(path) if path != '/' else None
+    
+    items = get_items(path)
+    return render(request, 'list/procedure.html', {
+        'items': items,
+        'current_path': path,
+        'parent_path': parent_path
     })
 
 def edit_file(request):
+    """Edit file content"""
     path = request.GET.get('path')
-    content = ''
-    error = None
-
-    if path:
-        if os.path.exists(path) and os.path.isfile(path):
+    if not path:
+        return JsonResponse({'error': 'Path parameter is required'}, status=400)
+    
+    try:
+        # Decode URL-encoded path
+        path = urllib.parse.unquote(path)
+        
+        if not os.path.exists(path):
+            return JsonResponse({'error': 'File not found'}, status=404)
+        
+        # Try different encodings
+        encodings = ['utf-8', 'latin-1', 'cp1254', 'iso-8859-9']
+        content = None
+        
+        for enc in encodings:
             try:
-                with open(path, 'r', encoding='utf-8') as f:
+                with open(path, 'r', encoding=enc) as f:
                     content = f.read()
-            except Exception as e:
-                error = f"Dosya okunurken bir hata oluştu: {e}"
-        else:
-            error = 'Dosya bulunamadı veya bir dosya değil.'
-    else:
-        error = 'Dosya yolu belirtilmedi.'
-
-    context = {
-        'path': path,
-        'data': content,
-        'error': error
-    }
-
-    # Check if it's an AJAX request
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        if error:
-            return JsonResponse({
-                'success': False,
-                'error': error
-            })
-        return JsonResponse({
-            'success': True,
-            'data': {
-                'path': path,
-                'content': content
-            }
+                break
+            except UnicodeDecodeError:
+                continue
+        
+        if content is None:
+            return JsonResponse({'error': 'File encoding not supported'}, status=400)
+            
+        return render(request, 'list/edit.html', {
+            'content': content,
+            'path': path
         })
-
-    return render(request, 'list/edit.html', context)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
 def save_file(request):
-    if request.method == 'POST':
-        try:
-            path = request.POST.get('path')
-            text = request.POST.get('text')
-            
-            if not os.path.exists(path):
-                return JsonResponse({'success': False, 'error': 'Path does not exist'})
-            
-            with open(path, 'w', encoding='utf-8') as f:
-                f.write(text)
-            
-            return JsonResponse({'success': True, 'message': 'Dosya başarıyla kaydedildi.'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    return JsonResponse({'success': False, 'error': 'Invalid request method'})
-
-def download_file(request):
-    path = request.GET.get('path')
+    """Save file content"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
     
-    if not path:
-        return HttpResponse('Dosya yolu belirtilmedi.', status=400)
+    path = request.POST.get('path')
+    content = request.POST.get('content')
     
-    if not os.path.exists(path) or not os.path.isfile(path):
-        return HttpResponse('Dosya bulunamadı.', status=404)
+    if not path or not content:
+        return JsonResponse({'error': 'Missing path or content'}, status=400)
     
     try:
-        from django.utils.encoding import escape_uri_path
+        # Decode URL-encoded path
+        path = urllib.parse.unquote(path)
         
-        # Use FileResponse for efficient serving of large files
-        response = FileResponse(open(path, 'rb'), content_type='application/octet-stream')
-        response['Content-Disposition'] = f'attachment; filename="{escape_uri_path(os.path.basename(path))}"'
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        
+        # Save the file
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(content)
+            
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def download_file(request):
+    """Download file"""
+    path = request.GET.get('path')
+    if not path or not os.path.exists(path):
+        return JsonResponse({'error': 'File not found'}, status=404)
+    
+    try:
+        response = FileResponse(open(path, 'rb'))
+        response['Content-Disposition'] = f'attachment; filename="{os.path.basename(path)}"'
         return response
     except Exception as e:
-        return HttpResponse(f'Dosya indirilirken bir hata oluştu: {e}', status=500)
+        return JsonResponse({'error': str(e)}, status=500)
 
 def file_preview(request):
+    """Preview file content"""
     path = request.GET.get('path')
-    content = None
-    error = None
-    file_type = 'other' # Default file type
+    if not path or not os.path.exists(path):
+        return JsonResponse({'error': 'File not found'}, status=404)
     
-    if not path:
-        error = 'Dosya yolu belirtilmedi.'
-    elif not os.path.exists(path):
-        error = 'Dosya bulunamadı.'
-    elif os.path.isdir(path):
-        error = 'Klasörler önizlenemez.'
-    else:
-        try:
-            # Determine file type for preview
-            file_extension = os.path.splitext(path)[1].lower()
-            image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg']
-            text_extensions = ['.txt', '.log', '.py', '.html', '.css', '.js', '.json', '.xml', '.md']
-            
-            if file_extension in image_extensions:
-                file_type = 'image'
-            elif file_extension in text_extensions:
-                file_type = 'text'
-                # Read text file content
-                try:
-                    with open(path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                except Exception as e:
-                    error = f'Metin dosyası okunurken bir hata oluştu: {e}'
-            
-        except Exception as e:
-            error = f'Dosya türü belirlenirken bir hata oluştu: {e}'
-            
-    context = {
-        'path': path,
-        'file_name': os.path.basename(path) if path and not os.path.isdir(path) else None,
-        'content': content,
-        'error': error,
-        'file_type': file_type,
-    }
-
-    # Check if it's an AJAX request
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        if error:
-            return JsonResponse({
-                'success': False,
-                'error': error
-            })
-        return JsonResponse({
-            'success': True,
-            'data': {
-                'path': path,
-                'file_name': os.path.basename(path) if path and not os.path.isdir(path) else None,
+    try:
+        mime = magic.Magic(mime=True)
+        file_type = mime.from_file(path)
+        
+        if file_type.startswith('text/'):
+            with open(path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return render(request, 'list/preview.html', {
                 'content': content,
-                'file_type': file_type
-            }
-        })
-
-    return render(request, 'list/file_preview.html', context)
+                'path': path,
+                'type': file_type
+            })
+        else:
+            return JsonResponse({'error': 'File type not supported for preview'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
 def delete_item(request):
-    if request.method == 'POST':
-        try:
-            path = request.POST.get('path')
-            
-            if not path:
-                return JsonResponse({'success': False, 'error': 'Path is required'})
-            
-            if not os.path.exists(path):
-                return JsonResponse({'success': False, 'error': 'Path does not exist'})
-            
-            # Check if it's a file or directory
-            if os.path.isfile(path):
-                os.remove(path)
-            else:
-                shutil.rmtree(path)
-            
-            return JsonResponse({'success': True, 'message': 'Item deleted successfully'})
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+    """Delete file or directory"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    path = request.POST.get('path')
+    if not path or not os.path.exists(path):
+        return JsonResponse({'error': 'Item not found'}, status=404)
+    
+    try:
+        if os.path.isdir(path):
+            os.rmdir(path)
+        else:
+            os.remove(path)
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
 def upload_file(request):
-    if request.method == 'POST':
-        try:
-            # Get the target directory from POST data
-            target_dir = request.POST.get('target_dir', '/')
-            
-            # Validate target directory
-            if not os.path.exists(target_dir):
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Target directory does not exist'
-                })
-            
-            if not os.path.isdir(target_dir):
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Target path is not a directory'
-                })
-            
-            # Check if file was uploaded
-            if 'file' not in request.FILES:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'No file uploaded'
-                })
-            
-            uploaded_file = request.FILES['file']
-            
-            # Create the full path for the uploaded file
-            file_path = os.path.join(target_dir, uploaded_file.name)
-            
-            # Handle filename collisions
-            base, ext = os.path.splitext(uploaded_file.name)
-            counter = 1
-            while os.path.exists(file_path):
-                file_path = os.path.join(target_dir, f"{base}_{counter}{ext}")
-                counter += 1
-            
-            # Save the uploaded file
-            with open(file_path, 'wb+') as destination:
-                for chunk in uploaded_file.chunks():
-                    destination.write(chunk)
-            
-            return JsonResponse({
-                'success': True,
-                'data': {
-                    'path': file_path,
-                    'name': os.path.basename(file_path),
-                    'size': os.path.getsize(file_path)
-                }
-            })
-            
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'error': str(e)
-            })
+    """Upload file to directory"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
     
-    return JsonResponse({
-        'success': False,
-        'error': 'Invalid request method'
-    })
+    path = request.POST.get('path', '/')
+    if not os.path.exists(path):
+        return JsonResponse({'error': 'Directory not found'}, status=404)
+    
+    try:
+        file = request.FILES.get('file')
+        if not file:
+            return JsonResponse({'error': 'No file provided'}, status=400)
+        
+        file_path = os.path.join(path, file.name)
+        with open(file_path, 'wb+') as destination:
+            for chunk in file.chunks():
+                destination.write(chunk)
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
 def create_folder(request):
-    if request.method == 'POST':
-        try:
-            path = request.POST.get('path')
-            folder_name = request.POST.get('folder_name')
-            
-            if not path or not folder_name:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Path and folder name are required'
-                })
-            
-            # Create full path for new folder
-            new_folder_path = os.path.join(path, folder_name)
-            
-            # Check if folder already exists
-            if os.path.exists(new_folder_path):
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Folder already exists'
-                })
-            
-            # Create the folder
-            os.makedirs(new_folder_path)
-            
-            return JsonResponse({
-                'success': True,
-                'data': {
-                    'path': new_folder_path,
-                    'name': folder_name
-                }
-            })
-            
-        except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'error': str(e)
-            })
+    """Create new folder"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
     
-    return JsonResponse({
-        'success': False,
-        'error': 'Invalid request method'
-    })
+    path = request.POST.get('path', '/')
+    folder_name = request.POST.get('name')
+    
+    if not path or not folder_name:
+        return JsonResponse({'error': 'Missing path or folder name'}, status=400)
+    
+    try:
+        new_folder_path = os.path.join(path, folder_name)
+        os.makedirs(new_folder_path, exist_ok=True)
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500) 

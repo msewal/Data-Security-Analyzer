@@ -1,42 +1,35 @@
 {% extends "list/base_table.html" %}
 {% load static %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Güvenlik Dashboard{% endblock %}
 
 {% block table_title %}Sistem Durumu{% endblock %}
 
+{% block table_headers %}
+<th>Metrik</th>
+<th>Değer</th>
+<th>Durum</th>
+{% endblock %}
+
 {% block table_content %}
 <tr>
-    <td>Toplam Dosya Sayısı</td>
-    <td>İstatistik</td>
-    <td>{{ total_files }}</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
+    <td>Toplam Tarama</td>
+    <td>0</td>
+    <td><span class="badge badge-info">Normal</span></td>
 </tr>
 <tr>
-    <td>Toplam Klasör Sayısı</td>
-    <td>İstatistik</td>
-    <td>{{ total_dirs }}</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
+    <td>Bulunan Tehditler</td>
+    <td>0</td>
+    <td><span class="badge badge-success">Temiz</span></td>
 </tr>
 <tr>
-    <td>Toplam Boyut</td>
-    <td>İstatistik</td>
-    <td>{{ total_size }}</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
-    <td>-</td>
+    <td>Karantinadaki Dosyalar</td>
+    <td>0</td>
+    <td><span class="badge badge-warning">Beklemede</span></td>
+</tr>
+<tr>
+    <td>Temizlenen Dosyalar</td>
+    <td>0</td>
+    <td><span class="badge badge-success">Tamamlandı</span></td>
 </tr>
 {% endblock %}

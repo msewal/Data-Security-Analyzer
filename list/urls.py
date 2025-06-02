@@ -11,6 +11,7 @@ urlpatterns = [
     
     # Dosya işlemleri
     path("edit/", views.edit_file, name="edit_file"),
+    path("save/", views.save_file, name="save_file"),
     path("preview/", views.file_preview, name="file_preview"),
     path("download/", views.download_file, name="download_file"),
     

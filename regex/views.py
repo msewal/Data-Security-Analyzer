@@ -8,11 +8,11 @@ from .patterns import (
     ALL_REGEX_PATTERNS_BACKEND
 )
 
-# Tüm path'leri güvenli kabul et (sistem geneli taranabilir)
 def is_safe_path(path):
+    """Check if the path is safe to scan"""
+    # Add your path safety checks here
     return True
 
-# Ana tarama fonksiyonu
 def regex_search_results_view(request):
     if request.method == 'POST':
         directory_path = request.POST.get('directory_path')
@@ -47,7 +47,7 @@ def regex_search_results_view(request):
                     try:
                         with open(file_path, 'r', encoding=enc) as f:
                             lines = f.readlines()
-                        break
+                            break
                     except (PermissionError, FileNotFoundError, UnicodeDecodeError):
                         continue
                 else:
@@ -85,7 +85,6 @@ def regex_search_results_view(request):
         'error_message': 'Geçersiz istek.'
     })
 
-# Detaylı eşleşmeleri gösteren view
 def regex_search_detail_view(request, file_path):
     decoded_file_path = urllib.parse.unquote(file_path)
     matches = []
@@ -131,6 +130,5 @@ def regex_search_detail_view(request, file_path):
         'file_path': decoded_file_path
     })
 
-# Kategori listesini JSON olarak döner (API endpoint)
 def api_get_regex_patterns(request):
     return JsonResponse(ALL_REGEX_PATTERNS_BACKEND)
