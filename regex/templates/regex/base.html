@@ -75,9 +75,9 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'regex_search_results_view' %}active{% endif %}" 
-                   href="{% url 'regex:regex_search_results_view' %}">
-                    <i class="bi bi-list-check"></i> Tarama Sonuçları
+                <a class="nav-link {% if request.resolver_match.url_name == 'sensitive_scan' %}active{% endif %}" 
+                   href="{% url 'regex:sensitive_scan' %}">
+                    <i class="bi bi-list-check"></i> Hassas Veri Tarama
                 </a>
             </li>
         </ul>

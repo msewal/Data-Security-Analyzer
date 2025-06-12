@@ -1,0 +1,89 @@
+{% extends 'list/base.html' %}
+{% load static %}
+
+{% block title %}Hassas Veri Tarama Detayları{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-container {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .category-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+    }
+    .category-header {
+        background-color: #e9ecef;
+        padding: 10px;
+        border-radius: 3px;
+        margin-bottom: 10px;
+    }
+    .subcategory-section {
+        margin-left: 20px;
+        margin-bottom: 15px;
+    }
+    .match-list {
+        list-style: none;
+        padding-left: 0;
+    }
+    .match-item {
+        padding: 5px;
+        margin: 2px 0;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 3px;
+    }
+    .back-button {
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="back-button">
+        <a href="{% url 'regex:sensitive_scan' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Geri Dön
+        </a>
+    </div>
+
+    <h2 class="mb-4">
+        <i class="bi bi-file-text"></i> Dosya Detayları: {{ file_path }}
+    </h2>
+
+    {% if error_message %}
+    <div class="alert alert-danger">{{ error_message }}</div>
+    {% endif %}
+
+    <div class="detail-container">
+        {% if matches %}
+            {% for category, subcategories in matches.items %}
+            <div class="category-section">
+                <div class="category-header">
+                    <h4>{{ category|title }}</h4>
+                </div>
+                {% for subcategory, match_list in subcategories.items %}
+                <div class="subcategory-section">
+                    <h5>{{ subcategory }}</h5>
+                    <ul class="match-list">
+                        {% for match in match_list %}
+                        <li class="match-item">{{ match }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                Bu dosyada hassas veri bulunamadı.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

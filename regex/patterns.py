@@ -39,13 +39,20 @@ sensitive_patterns = {
 # Centralized regex patterns in Python dictionary format (Comprehensive)
 ALL_REGEX_PATTERNS_BACKEND = {
     'personalInfo': [
-        {'subcategory': 'TC Kimlik Numarası', 'pattern': r'\b[1-9]\d{10}\b'},
-        {'subcategory': 'Vergi Kimlik Numarası', 'pattern': r'\b\d{10}\b'},
-        {'subcategory': 'Telefon Numarası (Mobil)', 'pattern': r'\b05\d{9}\b'},
-        {'subcategory': 'Telefon Numarası (Sabit Hat)', 'pattern': r'\b0[2-4]{1}\d{9}\b'},
-        {'subcategory': 'E-posta Adresi', 'pattern': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'},
-        {'subcategory': 'Doğum Tarihi', 'pattern': r'\b(?:0[1-9]|[12][0-9]|3[01])/(?:0[1-9]|1[0-2])/(?:19|20)[0-9]{2}\b'},
-        {'subcategory': 'Ad Soyad', 'pattern': r'\b[A-ZÇĞİÖŞÜ][a-zçğıöşü]+\s[A-ZÇĞİÖŞÜ][a-zçğıöşü]+\b'}
+        # TC Kimlik Numarası: 11 haneli, ilk rakam 0 olamaz
+        {'subcategory': 'TC Kimlik Numarası', 'pattern': r'\b[1-9][0-9]{10}\b'},
+        # Vergi Kimlik Numarası: 10 haneli
+        {'subcategory': 'Vergi Kimlik Numarası', 'pattern': r'\b[0-9]{10}\b'},
+        # Telefon Numarası (Mobil): 05xx xxx xx xx veya +90 5xx xxx xx xx
+        {'subcategory': 'Telefon Numarası (Mobil)', 'pattern': r'\b(?:\+90[\s-]?|0)?5\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}\b'},
+        # Telefon Numarası (Sabit Hat): 0xxx xxx xx xx veya (xxx) xxx xx xx
+        {'subcategory': 'Telefon Numarası (Sabit Hat)', 'pattern': r'\b(?:0[2-9][0-9]{2}[\s-]?|\([2-9][0-9]{2}\)[\s-]?)\d{3}[\s-]?\d{2}[\s-]?\d{2}\b'},
+        # E-posta Adresi
+        {'subcategory': 'E-posta Adresi', 'pattern': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b'},
+        # Doğum Tarihi: GG/AA/YYYY veya GG.AA.YYYY
+        {'subcategory': 'Doğum Tarihi', 'pattern': r'\b(?:0[1-9]|[12][0-9]|3[01])[./-](?:0[1-9]|1[0-2])[./-](?:19|20)\d{2}\b'},
+        # Ad Soyad: En az iki kelime, baş harfler büyük
+        {'subcategory': 'Ad Soyad', 'pattern': r'\b[A-ZÇĞİÖŞÜ][a-zçğıöşü]+(?:\s+[A-ZÇĞİÖŞÜ][a-zçğıöşü]+)+\b'}
     ],
     'financialData': [
         {'subcategory': 'Kredi Kartı Numarası', 'pattern': r'\b(?:\d[ -]*?){13,16}\b'},
@@ -61,7 +68,7 @@ ALL_REGEX_PATTERNS_BACKEND = {
     'corporateData': [
         {'subcategory': 'Vergi Numarası', 'pattern': r'\b[0-9]{10}\b'},
         {'subcategory': 'Şirket Sicil Numarası', 'pattern': r'\b[0-9]{10}\b'},
-        {'subcategory': 'Şirket Telefonu', 'pattern': r'\b0[2-4]{1}\d{9}\b'}
+        {'subcategory': 'Şirket Telefonu', 'pattern': r'\b0[2-9][0-9]{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}\b'}
     ],
     'locationData': [
         {'subcategory': 'Adres', 'pattern': r'(?:Mahalle|Sokak|Cadde|Bulvar)\s+[A-Za-zğüşıöçĞÜŞİÖÇ\s]+(?:No|No\.)?\s*[0-9]+'},

@@ -6,7 +6,7 @@
 {% block regex_content %}
 <div class="card mb-4">
     <div class="card-body">
-        <form id="regex-search-form" method="post" action="{% url 'regex:regex_search_results_view' %}">
+        <form id="regex-search-form" method="post" action="{% url 'regex:sensitive_scan' %}">
             {% csrf_token %}
 
             <div class="form-group mb-4">

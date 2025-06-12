@@ -36,16 +36,35 @@
                 </div>
             {% endif %}
 
+            <!-- Atlanan Dosyalar Butonu ve Modal -->
             {% if skipped_files %}
-                <div class="alert alert-secondary mt-3">
-                    <h5><i class="bi bi-skip-forward-fill me-2"></i>Atlanan Dosyalar</h5>
-                    <p class="mb-2">Aşağıdaki dosyalar boyut, tür veya güvenlik nedeniyle atlandı:</p>
+            <button type="button" class="btn btn-outline-secondary mb-3" data-bs-toggle="modal" data-bs-target="#skippedFilesModal">
+                <i class="bi bi-skip-forward-fill me-2"></i>Atlanan Dosyalar ({{ skipped_files|length }})
+            </button>
+            <!-- Modal -->
+            <div class="modal fade" id="skippedFilesModal" tabindex="-1" aria-labelledby="skippedFilesModalLabel" aria-hidden="true">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="skippedFilesModalLabel">Atlanan Dosyalar ve Nedenleri</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                  </div>
+                  <div class="modal-body">
                     <ul class="list-group">
-                        {% for file in skipped_files %}
-                            <li class="list-group-item text-muted">{{ file }}</li>
-                        {% endfor %}
+                      {% for skipped in skipped_files %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                          <span class="text-break">{{ skipped.file }}</span>
+                          <span class="badge bg-secondary ms-2">{{ skipped.reason }}</span>
+                        </li>
+                      {% endfor %}
                     </ul>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                  </div>
                 </div>
+              </div>
+            </div>
             {% endif %}
 
             <div class="results-container mt-4">
@@ -54,25 +73,29 @@
                         <h5 class="mb-3">
                             <i class="bi bi-file-text"></i> {{ result.file_path }}
                         </h5>
-                        {% for pattern_type, matches in result.matches.items %}
+                        {% for category, subcats in result.matches.items %}
                             <div class="pattern-matches">
-                                <h6 class="text-primary">{{ pattern_type }}</h6>
-                                {% for match in matches %}
+                                <h6 class="text-primary">{{ category }}</h6>
+                                {% for subcat, matches in subcats.items %}
                                     <div class="match-item">
-                                        <span>{{ match }}</span>
-                                        <span class="action-btns">
-                                            <button class="btn btn-sm btn-warning" disabled>Mask</button>
-                                            <button class="btn btn-sm btn-success" disabled>Encrypt</button>
-                                        </span>
+                                        <span><strong>{{ subcat }}:</strong> {{ matches|join:", " }}</span>
                                     </div>
                                 {% endfor %}
                             </div>
                         {% endfor %}
                         <div class="mt-3">
                             <a class="btn btn-outline-info btn-sm"
-                               href="{% url 'regex:regex_search_detail_view' file_path=result.file_path|urlencode %}">
+                               href="{% url 'regex:sensitive_scan_detail' file_path=result.file_path|urlencode %}">
                                 <i class="bi bi-search"></i> Detaylı Görüntüle
                             </a>
+                            <a class="btn btn-outline-warning btn-sm ms-2"
+                               href="{% url 'regex:edit_file' file_path=result.file_path|urlencode %}">
+                                <i class="bi bi-pencil-square"></i> Düzenle
+                            </a>
+                            <button class="btn btn-outline-danger btn-sm ms-2 quarantine-btn"
+                                    data-file-path="{{ result.file_path|urlencode }}">
+                                <i class="bi bi-shield-lock"></i> Karantinaya Al
+                            </button>
                         </div>
                     </div>
                 {% endfor %}
@@ -120,4 +143,42 @@
         word-break: break-all;
     }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.quarantine-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const filePath = this.dataset.filePath;
+            if (confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
+                fetch('{% url "regex:quarantine_file" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/x-www-form-urlencoded', // Ensure correct content type
+                    },
+                    body: `file_path=${filePath}&reason=Sensitive+data+detected+by+regex+scan` // Send as form data
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('Hata: ' + data.error);
+                    } else {
+                        alert(data.message);
+                        // Başarılı olursa sayfayı yenilemek yerine sadece ilgili satırı kaldırabiliriz.
+                        // Ancak karantina işleminden sonra dosyanın gerçekten erişilemez olduğundan
+                        // emin olmak için sayfayı yenilemek daha güvenli olabilir.
+                        location.reload(); 
+                    }
+                })
+                .catch(error => {
+                    alert('Bir hata oluştu: ' + error);
+                });
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

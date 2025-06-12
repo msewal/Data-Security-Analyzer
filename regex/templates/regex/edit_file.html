@@ -1,0 +1,173 @@
+{% extends "regex/base.html" %}
+{% load static %}
+
+{% block regex_title %}Dosya Düzenle{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .font-monospace {
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        tab-size: 4;
+    }
+    #editor {
+        height: 70vh;
+        margin-bottom: 20px;
+    }
+    .ql-editor {
+        font-family: {% if file_type == 'txt' or file_type == 'py' or file_type == 'js' or file_type == 'html' or file_type == 'css' %}monospace{% else %}inherit{% endif %};
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    .file-info {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+    }
+    .file-info i {
+        margin-right: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block regex_content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-pencil-square"></i> Dosya Düzenle: {{ file_path }}
+        </h5>
+        <div>
+            <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                <i class="bi bi-arrow-left"></i> Geri
+            </button>
+            <button type="button" class="btn btn-primary" onclick="saveFile()">
+                <i class="bi bi-save"></i> Kaydet
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="file-info">
+            <p class="mb-1">
+                <i class="bi bi-file-earmark-text"></i>
+                <strong>Dosya Türü:</strong> {{ file_type|upper }}
+            </p>
+            <p class="mb-0">
+                <i class="bi bi-info-circle"></i>
+                <strong>Not:</strong> 
+                {% if file_type == 'pdf' %}
+                    PDF dosyalarında sadece metin içeriği düzenlenebilir. Format ve görsel öğeler korunacaktır.
+                {% elif file_type in 'docx,doc' %}
+                    DOCX dosyalarında metin düzenleme yapılabilir. Format korunacaktır.
+                {% elif file_type in 'pptx,ppt' %}
+                    PPTX dosyalarında slayt içerikleri düzenlenebilir. Tasarım korunacaktır.
+                {% else %}
+                    Metin dosyalarında tam düzenleme yapılabilir.
+                {% endif %}
+            </p>
+        </div>
+        
+        <form id="editForm" method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+                {% if file_type == 'txt' or file_type == 'py' or file_type == 'js' or file_type == 'html' or file_type == 'css' %}
+                    <textarea id="fileContent" name="content" class="form-control font-monospace" 
+                              style="height: 70vh; font-size: 14px;">{{ content }}</textarea>
+                {% else %}
+                    <div id="editor">{{ content }}</div>
+                    <input type="hidden" name="content" id="hiddenContent">
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast Bildirimi -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong class="me-auto">Bildirim</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Kapat"></button>
+        </div>
+        <div class="toast-body"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<script>
+{% if file_type != 'txt' and file_type != 'py' and file_type != 'js' and file_type != 'html' and file_type != 'css' %}
+var quill = new Quill('#editor', {
+    theme: 'snow',
+    modules: {
+        toolbar: [
+            ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ 'header': 1 }, { 'header': 2 }],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'script': 'sub'}, { 'script': 'super' }],
+            [{ 'indent': '-1'}, { 'indent': '+1' }],
+            [{ 'direction': 'rtl' }],
+            [{ 'size': ['small', false, 'large', 'huge'] }],
+            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'font': [] }],
+            [{ 'align': [] }],
+            ['clean']
+        ]
+    }
+});
+{% endif %}
+
+function showToast(message, isError = false) {
+    const toast = document.getElementById('saveToast');
+    const toastBody = toast.querySelector('.toast-body');
+    toastBody.textContent = message;
+    toastBody.className = 'toast-body ' + (isError ? 'text-danger' : 'text-success');
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
+
+function saveFile() {
+    const form = document.getElementById('editForm');
+    const formData = new FormData(form);
+    
+    {% if file_type != 'txt' and file_type != 'py' and file_type != 'js' and file_type != 'html' and file_type != 'css' %}
+    // Quill editöründen içeriği al
+    const content = quill.root.innerHTML;
+    formData.set('content', content);
+    {% endif %}
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showToast(data.error, true);
+        } else {
+            showToast(data.message);
+        }
+    })
+    .catch(error => {
+        showToast('Bir hata oluştu: ' + error, true);
+    });
+}
+
+// Ctrl+S ile kaydetme
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        saveFile();
+    }
+});
+</script>
+{% endblock %} 

@@ -11,6 +11,78 @@
         padding: 20px;
         margin-bottom: 20px;
     }
+    .category-container {
+        margin-bottom: 15px;
+        padding: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+    }
+    .category-header {
+        cursor: pointer;
+        padding: 5px;
+        background-color: #e9ecef;
+        border-radius: 3px;
+        margin-bottom: 10px;
+    }
+    .subcategory-container {
+        margin-left: 20px;
+        display: none;
+    }
+    .subcategory-container.show {
+        display: block;
+    }
+    .file-types-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px;
+    }
+    .select-all-container {
+        margin-bottom: 10px;
+    }
+    .file-type-group {
+        background-color: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .file-type-group:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    .file-type-group h6 {
+        color: #495057;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    .file-type-checkbox {
+        cursor: pointer;
+    }
+    .file-type-label {
+        cursor: pointer;
+        padding: 5px 10px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        display: inline-block;
+        width: 100%;
+    }
+    .file-type-label:hover {
+        background-color: #f8f9fa;
+    }
+    .file-type-checkbox:checked + .file-type-label {
+        background-color: #e3f2fd;
+        color: #0d6efd;
+    }
+    .file-type-description {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 2px;
+        display: none;
+    }
+    .file-type-label:hover + .file-type-description {
+        display: block;
+    }
 </style>
 {% endblock %}
 
@@ -32,37 +104,218 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Kategoriler ve Alt Kategoriler -->
             <div class="row mb-3">
                 <div class="col-12">
-                    <label class="form-label">Dosya Türleri</label>
-                    <div class="file-types-container">
-                        <div class="file-type-checkbox">
+                    <label class="form-label">Tarama Kategorileri</label>
+                    <div class="select-all-container">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="selectAllCategories">
+                            <label class="form-check-label" for="selectAllCategories">Tüm Kategorileri Seç</label>
+                        </div>
+                    </div>
+
+                    <!-- Kişisel Bilgiler -->
+                    <div class="category-container">
+                        <div class="category-header" onclick="toggleSubcategories('personalInfo')">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="file_types" value="txt" id="txt" checked>
-                                <label class="form-check-label" for="txt">Metin Dosyaları (.txt)</label>
+                                <input class="form-check-input category-checkbox" type="checkbox" name="categories" value="personalInfo" id="personalInfo">
+                                <label class="form-check-label" for="personalInfo">Kişisel Bilgiler</label>
                             </div>
                         </div>
-                        <div class="file-type-checkbox">
+                        <div class="subcategory-container" id="personalInfo-subcategories">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="file_types" value="csv" id="csv" checked>
-                                <label class="form-check-label" for="csv">CSV Dosyaları (.csv)</label>
+                                <input class="form-check-input subcategory-checkbox" type="checkbox" name="subcategories[personalInfo]" value="TC Kimlik Numarası" id="tcKimlik">
+                                <label class="form-check-label" for="tcKimlik">TC Kimlik Numarası</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input subcategory-checkbox" type="checkbox" name="subcategories[personalInfo]" value="E-posta Adresi" id="eposta">
+                                <label class="form-check-label" for="eposta">E-posta Adresi</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input subcategory-checkbox" type="checkbox" name="subcategories[personalInfo]" value="Telefon Numarası (Mobil)" id="telefonMobil">
+                                <label class="form-check-label" for="telefonMobil">Telefon Numarası (Mobil)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input subcategory-checkbox" type="checkbox" name="subcategories[personalInfo]" value="Telefon Numarası (Sabit Hat)" id="telefonSabit">
+                                <label class="form-check-label" for="telefonSabit">Telefon Numarası (Sabit Hat)</label>
                             </div>
                         </div>
-                        <div class="file-type-checkbox">
+                    </div>
+
+                    <!-- Finansal Veriler -->
+                    <div class="category-container">
+                        <div class="category-header" onclick="toggleSubcategories('financialData')">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="file_types" value="json" id="json" checked>
-                                <label class="form-check-label" for="json">JSON Dosyaları (.json)</label>
+                                <input class="form-check-input category-checkbox" type="checkbox" name="categories" value="financialData" id="financialData">
+                                <label class="form-check-label" for="financialData">Finansal Veriler</label>
                             </div>
                         </div>
-                        <div class="file-type-checkbox">
+                        <div class="subcategory-container" id="financialData-subcategories">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="file_types" value="docx" id="docx" checked>
-                                <label class="form-check-label" for="docx">Word Dosyaları (.docx)</label>
+                                <input class="form-check-input subcategory-checkbox" type="checkbox" name="subcategories[financialData]" value="Kredi Kartı Numarası" id="krediKarti">
+                                <label class="form-check-label" for="krediKarti">Kredi Kartı Numarası</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input subcategory-checkbox" type="checkbox" name="subcategories[financialData]" value="IBAN" id="iban">
+                                <label class="form-check-label" for="iban">IBAN</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input subcategory-checkbox" type="checkbox" name="subcategories[financialData]" value="Hesap Numarası" id="hesapNo">
+                                <label class="form-check-label" for="hesapNo">Hesap Numarası</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sağlık Verileri -->
+                    <div class="category-container">
+                        <div class="category-header" onclick="toggleSubcategories('healthData')">
+                            <div class="form-check">
+                                <input class="form-check-input category-checkbox" type="checkbox" name="categories" value="healthData" id="healthData">
+                                <label class="form-check-label" for="healthData">Sağlık Verileri</label>
+                            </div>
+                        </div>
+                        <div class="subcategory-container" id="healthData-subcategories">
+                            <div class="form-check">
+                                <input class="form-check-input subcategory-checkbox" type="checkbox" name="subcategories[healthData]" value="SGK Numarası" id="sgkNo">
+                                <label class="form-check-label" for="sgkNo">SGK Numarası</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input subcategory-checkbox" type="checkbox" name="subcategories[healthData]" value="Hasta Kayıt Numarası" id="hastaNo">
+                                <label class="form-check-label" for="hastaNo">Hasta Kayıt Numarası</label>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Dosya Türleri -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <label class="form-label">Dosya Türleri</label>
+                    <div class="mb-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllFileTypes">
+                            <i class="bi bi-check-all"></i> Tümünü Seç
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="deselectAllFileTypes">
+                            <i class="bi bi-x-lg"></i> Tümünü Temizle
+                        </button>
+                    </div>
+                    <div class="file-types-container">
+                        <div class="file-type-group">
+                            <h6><i class="bi bi-file-text"></i> Metin Dosyaları</h6>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="txt" id="txt" checked>
+                                <label class="form-check-label file-type-label" for="txt">.txt</label>
+                                <div class="file-type-description">Düz metin dosyaları</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="md" id="md">
+                                <label class="form-check-label file-type-label" for="md">.md</label>
+                                <div class="file-type-description">Markdown belgeleri</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="log" id="log">
+                                <label class="form-check-label file-type-label" for="log">.log</label>
+                                <div class="file-type-description">Log dosyaları</div>
+                            </div>
+                        </div>
+
+                        <div class="file-type-group">
+                            <h6><i class="bi bi-table"></i> Tablolar & Veri</h6>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="csv" id="csv" checked>
+                                <label class="form-check-label file-type-label" for="csv">.csv</label>
+                                <div class="file-type-description">Virgülle ayrılmış değerler</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="tsv" id="tsv">
+                                <label class="form-check-label file-type-label" for="tsv">.tsv</label>
+                                <div class="file-type-description">Sekmeyle ayrılmış değerler</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="json" id="json" checked>
+                                <label class="form-check-label file-type-label" for="json">.json</label>
+                                <div class="file-type-description">JSON veri dosyaları</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="xml" id="xml">
+                                <label class="form-check-label file-type-label" for="xml">.xml</label>
+                                <div class="file-type-description">XML belgeleri</div>
+                            </div>
+                        </div>
+
+                        <div class="file-type-group">
+                            <h6><i class="bi bi-file-earmark-text"></i> Ofis & Doküman</h6>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="doc" id="doc">
+                                <label class="form-check-label file-type-label" for="doc">.doc</label>
+                                <div class="file-type-description">Word belgeleri (eski)</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="docx" id="docx" checked>
+                                <label class="form-check-label file-type-label" for="docx">.docx</label>
+                                <div class="file-type-description">Word belgeleri</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="pdf" id="pdf">
+                                <label class="form-check-label file-type-label" for="pdf">.pdf</label>
+                                <div class="file-type-description">PDF belgeleri</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="xls" id="xls">
+                                <label class="form-check-label file-type-label" for="xls">.xls</label>
+                                <div class="file-type-description">Excel tabloları (eski)</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="xlsx" id="xlsx">
+                                <label class="form-check-label file-type-label" for="xlsx">.xlsx</label>
+                                <div class="file-type-description">Excel tabloları</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="ppt" id="ppt">
+                                <label class="form-check-label file-type-label" for="ppt">.ppt</label>
+                                <div class="file-type-description">PowerPoint sunumları (eski)</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="pptx" id="pptx">
+                                <label class="form-check-label file-type-label" for="pptx">.pptx</label>
+                                <div class="file-type-description">PowerPoint sunumları</div>
+                            </div>
+                        </div>
+
+                        <div class="file-type-group">
+                            <h6><i class="bi bi-file-earmark-zip"></i> Arşiv Dosyaları</h6>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="zip" id="zip">
+                                <label class="form-check-label file-type-label" for="zip">.zip</label>
+                                <div class="file-type-description">ZIP arşivleri</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="rar" id="rar">
+                                <label class="form-check-label file-type-label" for="rar">.rar</label>
+                                <div class="file-type-description">RAR arşivleri</div>
+                            </div>
+                        </div>
+
+                        <div class="file-type-group">
+                            <h6><i class="bi bi-file-earmark-image"></i> Görsel Dosyalar</h6>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="png" id="png">
+                                <label class="form-check-label file-type-label" for="png">.png</label>
+                                <div class="file-type-description">PNG görselleri</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="jpg" id="jpg">
+                                <label class="form-check-label file-type-label" for="jpg">.jpg</label>
+                                <div class="file-type-description">JPEG görselleri</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-search"></i> Taramayı Başlat
@@ -73,15 +326,63 @@
     {% if error_message %}
     <div class="alert alert-danger mt-3">{{ error_message }}</div>
     {% endif %}
+
+    {% if results %}
+    <div class="alert alert-info mt-4">
+        <strong>Sonuçlar:</strong>
+        <ul>
+        {% for result in results %}
+            <li>
+                <strong>{{ result.file_path }}</strong>
+                <ul>
+                {% for category, subcats in result.matches.items %}
+                    <li>{{ category }}
+                        <ul>
+                        {% for subcat, matches in subcats.items %}
+                            <li>{{ subcat }}: {{ matches|join:", " }}</li>
+                        {% endfor %}
+                        </ul>
+                    </li>
+                {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if error_files %}
+    <div class="alert alert-warning mt-4">
+        <strong>Erişilemeyen/Hatalı Dosyalar:</strong>
+        <ul>
+        {% for file in error_files %}
+            <li>{{ file }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if skipped_files %}
+    <div class="alert alert-secondary mt-4">
+        <strong>Atlanan Dosyalar:</strong>
+        <ul>
+        {% for file in skipped_files %}
+            <li>{{ file }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    // Form doğrulama
     (function () {
         'use strict'
         var forms = document.querySelectorAll('.needs-validation')
-        Array.prototype.slice.call(forms).forEach(function (form) {
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
             form.addEventListener('submit', function (event) {
                 if (!form.checkValidity()) {
                     event.preventDefault()
@@ -90,6 +391,115 @@
                 form.classList.add('was-validated')
             }, false)
         })
-    })()
+    })();
+
+    // Alt kategorileri göster/gizle
+    function toggleSubcategories(categoryId) {
+        const subcategories = document.getElementById(`${categoryId}-subcategories`);
+        subcategories.classList.toggle('show');
+    }
+
+    // Kategori checkbox'ı değiştiğinde
+    document.querySelectorAll('.category-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const categoryId = this.id;
+            const subcategories = document.querySelectorAll(`#${categoryId}-subcategories .subcategory-checkbox`);
+            subcategories.forEach(sub => {
+                sub.checked = this.checked;
+            });
+        });
+    });
+
+    // Alt kategori checkbox'ı değiştiğinde
+    document.querySelectorAll('.subcategory-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const categoryId = this.name.match(/\[(.*?)\]/)[1];
+            const categoryCheckbox = document.getElementById(categoryId);
+            const subcategories = document.querySelectorAll(`#${categoryId}-subcategories .subcategory-checkbox`);
+            const allChecked = Array.from(subcategories).every(sub => sub.checked);
+            categoryCheckbox.checked = allChecked;
+        });
+    });
+
+    // Tüm kategorileri seç/kaldır
+    document.getElementById('selectAllCategories').addEventListener('change', function() {
+        const categoryCheckboxes = document.querySelectorAll('.category-checkbox');
+        const subcategoryCheckboxes = document.querySelectorAll('.subcategory-checkbox');
+        
+        categoryCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        
+        subcategoryCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+
+    // Geçmiş dizinler için otomatik tamamlama
+    document.addEventListener('DOMContentLoaded', function() {
+        const dirInput = document.getElementById('directory');
+        let history = JSON.parse(localStorage.getItem('directoryHistory') || '[]');
+        dirInput.addEventListener('focus', function() {
+            if (history.length > 0) {
+                let datalist = document.getElementById('dirHistoryList');
+                if (!datalist) {
+                    datalist = document.createElement('datalist');
+                    datalist.id = 'dirHistoryList';
+                    document.body.appendChild(datalist);
+                    dirInput.setAttribute('list', 'dirHistoryList');
+                }
+                datalist.innerHTML = '';
+                history.forEach(function(item) {
+                    let option = document.createElement('option');
+                    option.value = item;
+                    datalist.appendChild(option);
+                });
+            }
+        });
+        document.querySelector('form').addEventListener('submit', function() {
+            const val = dirInput.value.trim();
+            if (val && !history.includes(val)) {
+                history.push(val);
+                localStorage.setItem('directoryHistory', JSON.stringify(history));
+            }
+        });
+    });
+
+    // Dosya türü tümünü seç/temizle
+    document.getElementById('selectAllFileTypes').onclick = function() {
+        document.querySelectorAll('.file-type-checkbox').forEach(cb => cb.checked = true);
+    };
+    document.getElementById('deselectAllFileTypes').onclick = function() {
+        document.querySelectorAll('.file-type-checkbox').forEach(cb => cb.checked = false);
+    };
+
+    // Dosya tipi seçimleri için hover efekti
+    document.querySelectorAll('.file-type-label').forEach(label => {
+        label.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f8f9fa';
+            this.nextElementSibling.style.display = 'block';
+        });
+        
+        label.addEventListener('mouseleave', function() {
+            if (!this.previousElementSibling.checked) {
+                this.style.backgroundColor = '';
+            }
+            this.nextElementSibling.style.display = 'none';
+        });
+    });
+
+    // Seçili dosya tiplerini vurgula
+    document.querySelectorAll('.file-type-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const label = this.nextElementSibling;
+            if (this.checked) {
+                label.style.backgroundColor = '#e3f2fd';
+                label.style.color = '#0d6efd';
+            } else {
+                label.style.backgroundColor = '';
+                label.style.color = '';
+            }
+        });
+    });
 </script>
 {% endblock %} 

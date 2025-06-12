@@ -1,10 +1,19 @@
 import os
 import stat
+import subprocess
+import sys
+
+if sys.platform != 'win32':
+    import pwd
+
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .cmd import ls, mkdir, cp, mv, touch, chmod, isTextFile
+import logging
+
+logger = logging.getLogger(__name__)
 
 def index(request):
     return render(request, 'bash/index.html')
@@ -18,8 +27,8 @@ def format_size(size):
 
 def get_owner(uid):
     try:
-        import pwd
-        return pwd.getpwuid(uid).pw_name
+        import grp
+        return grp.getgrgid(uid).gr_name
     except:
         return str(uid)
 
@@ -45,6 +54,16 @@ def get_items(path):
             'path': item_path
         })
     return items
+
+def get_username_from_uid(uid):
+    """Get username from uid"""
+    if sys.platform != 'win32':
+        try:
+            return pwd.getpwuid(uid).pw_name
+        except KeyError:
+            return str(uid)
+    else:
+        return str(uid) # On Windows, just return the UID
 
 @csrf_exempt
 def api_mkdir(request):
@@ -153,6 +172,25 @@ def api_savefile(request):
                 f.write(text)
             
             return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Geçersiz istek metodu.'})
+
+@csrf_exempt
+def run_bash_command(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            command = data.get('command')
+            if not command:
+                return JsonResponse({'success': False, 'error': 'Komut belirtilmedi.'})
+            
+            result = subprocess.run(command, shell=True, capture_output=True, text=True)
+            return JsonResponse({
+                'success': True,
+                'output': result.stdout,
+                'error': result.stderr
+            })
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Geçersiz istek metodu.'}) 
