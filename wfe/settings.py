@@ -47,8 +47,7 @@ INSTALLED_APPS = [
     'regex',
     'malware',
     'bash',
-    # 'quarantine',
-    
+    'quarantine',
 ]
 
 MIDDLEWARE = [

@@ -41,11 +41,33 @@
     .back-button {
         margin-bottom: 20px;
     }
+    .action-buttons {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+    }
+    .quarantine-button {
+        background-color: #dc3545;
+        color: white;
+    }
+    .quarantine-button:hover {
+        background-color: #c82333;
+        color: white;
+    }
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
+    {% csrf_token %}
     <div class="back-button">
         <a href="{% url 'regex:sensitive_scan' %}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Geri Dön
@@ -79,6 +101,12 @@
                 {% endfor %}
             </div>
             {% endfor %}
+
+            <div class="action-buttons">
+                <button id="quarantineButton" class="btn quarantine-button">
+                    <i class="bi bi-shield-lock"></i> Dosyayı Karantinaya Al
+                </button>
+            </div>
         {% else %}
             <div class="alert alert-info">
                 Bu dosyada hassas veri bulunamadı.
@@ -86,4 +114,96 @@
         {% endif %}
     </div>
 </div>
+
+<div class="toast-container">
+    <div id="quarantineToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">Karantina İşlemi</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const quarantineButton = document.getElementById('quarantineButton');
+    const toast = new bootstrap.Toast(document.getElementById('quarantineToast'));
+    const toastBody = document.querySelector('.toast-body');
+    let isProcessing = false;
+
+    if (quarantineButton) {
+        // Butona tıklama olayını bir kez tanımla
+        const handleQuarantine = async function(e) {
+            e.preventDefault();
+            e.stopPropagation(); // Olayın yayılmasını engelle
+            
+            // Eğer işlem devam ediyorsa veya buton devre dışıysa, işlemi engelle
+            if (isProcessing || quarantineButton.disabled) {
+                console.log('İşlem devam ediyor veya buton devre dışı');
+                return;
+            }
+
+            if (!confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
+                return;
+            }
+
+            try {
+                // İşlem başlamadan önce butonu devre dışı bırak
+                isProcessing = true;
+                quarantineButton.disabled = true;
+                quarantineButton.innerHTML = '<i class="bi bi-hourglass-split"></i> İşleniyor...';
+
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                // Form verisi oluştur
+                const formData = new FormData();
+                formData.append('file_path', '{{ file_path|escapejs }}');
+                formData.append('threat_type', 'Sensitive Data');
+                formData.append('threat_level', 'High');
+                formData.append('detected_pattern', '{{ matches|first|first|escapejs }}');
+
+                console.log('Gönderilen veri:', Object.fromEntries(formData));
+
+                const response = await fetch('{% url "regex:quarantine_file" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    toastBody.textContent = data.message;
+                    toastBody.className = 'toast-body text-success';
+                    quarantineButton.innerHTML = '<i class="bi bi-shield-check"></i> Karantinaya Alındı';
+                } else {
+                    toastBody.textContent = data.error;
+                    toastBody.className = 'toast-body text-danger';
+                    quarantineButton.disabled = false;
+                    quarantineButton.innerHTML = '<i class="bi bi-shield-lock"></i> Dosyayı Karantinaya Al';
+                }
+
+                toast.show();
+            } catch (error) {
+                console.error('Karantina hatası:', error);
+                toastBody.textContent = 'Karantina işlemi sırasında bir hata oluştu: ' + error.message;
+                toastBody.className = 'toast-body text-danger';
+                toast.show();
+                quarantineButton.disabled = false;
+                quarantineButton.innerHTML = '<i class="bi bi-shield-lock"></i> Dosyayı Karantinaya Al';
+            } finally {
+                isProcessing = false;
+            }
+        };
+
+        // Butona tıklama olayını bir kez ekle
+        quarantineButton.addEventListener('click', handleQuarantine, { once: false });
+    }
+});
+</script>
 {% endblock %} 

@@ -14,31 +14,33 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        /* Toast container için özel stil */
+        .toast-container {
+            position: fixed;
+            top: 80px; /* Navbar yüksekliği + margin */
+            right: 20px;
+            z-index: 1050;
+        }
+        .toast {
+            min-width: 300px;
+            margin-bottom: 10px;
+        }
+        /* Alert container için özel stil */
+        .alert-container {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1050;
+            width: 90%;
+            max-width: 600px;
+        }
+    </style>
 
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-light">
-
-    <!-- Alert Container -->
-    <div class="container mt-3">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {% if message.tags == "success" %}
-                        <i class="bi bi-check-circle-fill me-2"></i>
-                    {% elif message.tags == "error" %}
-                        <i class="bi bi-x-circle-fill me-2"></i>
-                    {% elif message.tags == "warning" %}
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    {% elif message.tags == "info" %}
-                        <i class="bi bi-info-circle-fill me-2"></i>
-                    {% endif %}
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    </div>
 
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4" style="position: fixed; top: 0; width: 100%; z-index: 1030;">
@@ -72,11 +74,6 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'regex:regex_search' %}">
-                            <i class="bi bi-regex"></i> Regex Arama
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'malware:quarantine_list' %}">
                             <i class="bi bi-archive"></i> Karantina
                         </a>
@@ -85,6 +82,30 @@
             </div>
         </div>
     </nav>
+
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+
+    <!-- Alert Container -->
+    <div class="alert-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {% if message.tags == "success" %}
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                    {% elif message.tags == "error" %}
+                        <i class="bi bi-x-circle-fill me-2"></i>
+                    {% elif message.tags == "warning" %}
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    {% elif message.tags == "info" %}
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                    {% endif %}
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
 
     <!-- Page Content -->
     <main class="container mb-4" style="margin-top: 80px;">
@@ -106,6 +127,32 @@
                 }, 5000);
             });
         });
+    </script>
+
+    <!-- Amplitude Analytics -->
+    <script>
+        // Amplitude yapılandırması
+        window.amplitude = window.amplitude || {};
+        window.amplitude.init = function(apiKey, options) {
+            // defaultTracking ayarını ekle
+            options = options || {};
+            options.defaultTracking = {
+                pageViews: true,
+                sessions: true,
+                fileDownloads: true,
+                formInteractions: true
+            };
+            
+            // Amplitude'u başlat
+            if (typeof amplitude !== 'undefined') {
+                amplitude.init(apiKey, options);
+            }
+        };
+
+        // hasAttribute hatası için güvenli kontrol
+        Element.prototype.safeHasAttribute = function(attr) {
+            return this && typeof this.hasAttribute === 'function' ? this.hasAttribute(attr) : false;
+        };
     </script>
 
     {% block extra_js %}{% endblock %}

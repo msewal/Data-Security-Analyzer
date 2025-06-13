@@ -28,4 +28,5 @@ urlpatterns = [
     path('bash/', include('bash.urls')),
     path('malware/', include('malware.urls')),
     path('regex/', include('regex.urls')),
+    path('quarantine/', include('quarantine.urls')),  # quarantine uygulamasının URL'lerini dahil et
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -1,0 +1,201 @@
+{% extends "list/base.html" %}
+{% load static %}
+
+{% block title %}Karantina Listesi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Karantina Yönetimi</h2>
+    </div>
+
+    <!-- İstatistik Kartları -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Karantinadaki Dosyalar</h5>
+                    <p class="card-text display-4">{{ files|length }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Tarama Araçları</h5>
+                    <p class="card-text display-4">{{ scan_tools_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Tehdit Türleri</h5>
+                    <p class="card-text display-4">{{ threat_types_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Toplam Boyut</h5>
+                    <p class="card-text display-4">{{ total_size }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Karantina Listesi -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Karantinadaki Dosyalar</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Dosya Adı</th>
+                            <th>Orijinal Yol</th>
+                            <th>Tehdit Türü</th>
+                            <th>Tehdit Seviyesi</th>
+                            <th>Tarama Aracı</th>
+                            <th>Karantina Zamanı</th>
+                            <th>Boyut</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for file in files %}
+                        <tr>
+                            <td>{{ file.filename }}</td>
+                            <td class="file-path">{{ file.original_path }}</td>
+                            <td>{{ file.malware_type }}</td>
+                            <td>
+                                <span class="badge {% if file.threat_level == 'high' %}bg-danger{% elif file.threat_level == 'medium' %}bg-warning{% else %}bg-info{% endif %}">
+                                    {{ file.get_threat_level_display }}
+                                </span>
+                            </td>
+                            <td>{{ file.scan_tool }}</td>
+                            <td>{{ file.quarantine_time|date:"d.m.Y H:i" }}</td>
+                            <td>{{ file.get_file_size_display }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-info btn-sm" onclick="showFileDetails('{{ file.id }}')" title="Detayları Görüntüle">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-success btn-sm" onclick="restoreFile('{{ file.id }}')" title="Geri Yükle">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteFile('{{ file.id }}')" title="Sil">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">Karantinada dosya bulunmuyor.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dosya Detay Modal -->
+<div class="modal fade" id="fileDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dosya Detayları</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="fileDetailsContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showFileDetails(fileId) {
+    fetch(`/quarantine/file/${fileId}/`)
+        .then(response => response.json())
+        .then(data => {
+            const content = document.getElementById('fileDetailsContent');
+            content.innerHTML = `
+                <dl class="row">
+                    <dt class="col-sm-3">Dosya Adı</dt>
+                    <dd class="col-sm-9">${data.filename}</dd>
+                    
+                    <dt class="col-sm-3">Orijinal Yol</dt>
+                    <dd class="col-sm-9">${data.original_path}</dd>
+                    
+                    <dt class="col-sm-3">Tehdit Türü</dt>
+                    <dd class="col-sm-9">${data.malware_type}</dd>
+                    
+                    <dt class="col-sm-3">Tehdit Seviyesi</dt>
+                    <dd class="col-sm-9">${data.threat_level}</dd>
+                    
+                    <dt class="col-sm-3">Tarama Aracı</dt>
+                    <dd class="col-sm-9">${data.scan_tool}</dd>
+                    
+                    <dt class="col-sm-3">Karantina Zamanı</dt>
+                    <dd class="col-sm-9">${data.quarantine_time}</dd>
+                    
+                    <dt class="col-sm-3">Dosya Boyutu</dt>
+                    <dd class="col-sm-9">${data.file_size_display}</dd>
+                    
+                    <dt class="col-sm-3">Dosya Hash</dt>
+                    <dd class="col-sm-9"><code>${data.file_hash}</code></dd>
+                </dl>
+            `;
+            new bootstrap.Modal(document.getElementById('fileDetailsModal')).show();
+        });
+}
+
+function restoreFile(fileId) {
+    if (confirm('Bu dosyayı geri yüklemek istediğinizden emin misiniz?')) {
+        fetch(`/quarantine/restore/${fileId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Hata: ' + data.error);
+            }
+        });
+    }
+}
+
+function deleteFile(fileId) {
+    if (confirm('Bu dosyayı kalıcı olarak silmek istediğinizden emin misiniz?')) {
+        fetch(`/quarantine/delete/${fileId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Hata: ' + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,26 @@
+Ad: Melek Şevval Erdoğan
+T.C. Kimlik No: 12345678901
+E-posta: melek.sevval@example.com
+Telefon: +90 532 123 45 67
+Kredi Kartı: 4111 1111 1111 1111
+CVV: 123
+Son Kullanma Tarihi: 12/26
+
+Adres: Atatürk Mah. Özgürlük Cad. No: 42, İstanbul, Türkiye
+
+IBAN: TR33 0006 1005 1978 6457 8413 26
+Şifre: Pa$$w0rd!
+Doğum Tarihi: 2000-01-01
+
+helllooooo
+
+Telefon: +905439129847
+
+E-posta: meleksevvalerdogan@gmail.com
+
+LinkedIn: linkedin.com/in/melek-sevval-erdogan/
+
+GitHub: github.com/msewal
+
+Medium: medium.com/@mewl
+

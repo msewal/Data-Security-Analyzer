@@ -11,7 +11,6 @@ urlpatterns = [
     path('api/regex-patterns/', views.api_get_regex_patterns, name='api_get_regex_patterns'),
     path('regex-search-results/', views.regex_search_results, name='regex_search_results'),
     path('edit-file/<path:file_path>/', views.edit_file, name='edit_file'),
-    path('quarantine-file/<path:file_path>/', views.quarantine_file, name='quarantine_file'),
     path('quarantine/', views.quarantine_list, name='quarantine_list'),
     path('quarantine_file/', views.quarantine_file, name='quarantine_file'),
 ]

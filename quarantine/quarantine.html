@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Karantinaya Alınmış Dosyalar</h2>
+        <a href="{% url 'regex:sensitive_scan' %}" class="btn btn-primary">
+            <i class="bi bi-search"></i> Yeni Tarama Başlat
+        </a>
+    </div>
+
+    <!-- İstatistik Kartları -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3>{{ files.count }}</h3>
+                    <p class="text-muted mb-0">Karantinadaki Dosya</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3>{{ files|dictsort:"scan_tool"|length }}</h3>
+                    <p class="text-muted mb-0">Farklı Tarama Aracı</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3>{{ files|dictsort:"malware_type"|length }}</h3>
+                    <p class="text-muted mb-0">Farklı Tehdit Türü</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h3>{{ files|dictsort:"threat_level"|length }}</h3>
+                    <p class="text-muted mb-0">Farklı Risk Seviyesi</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if files %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Dosya Adı</th>
+                    <th>Orijinal Yol</th>
+                    <th>Karantina Yolu</th>
+                    <th>Karantina Zamanı</th>
+                    <th>Neden</th>
+                    <th>Dosya Boyutu</th>
+                    <th>Hash</th>
+                    <th>Durum</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in files %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-file-earmark me-2"></i>
+                            {{ file.filename }}
+                        </div>
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ file.original_path }}</small>
+                    </td>
+                    <td>{{ file.quarantine_time|date:"d.m.Y H:i" }}</td>
+                    <td>{{ file.reason }}</td>
+                    <td>{{ file.file_size|filesizeformat }}</td>
+                    <td>
+                        <span class="badge {% if file.status == 'quarantined' %}bg-danger{% else %}bg-success{% endif %}">
+                            {{ file.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detailsModal{{ file.id }}">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                            <a href="{% url 'quarantine:restore_file' file.id %}" class="btn btn-sm btn-success" onclick="return confirm('Dosyayı geri yüklemek istediğinize emin misiniz?')">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
+                            <a href="{% url 'quarantine:delete_file' file.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Dosyayı kalıcı olarak silmek istediğinize emin misiniz?')">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+
+                        <!-- Detay Modalı -->
+                        <div class="modal fade" id="detailsModal{{ file.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Dosya Detayları</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <th>Dosya Adı:</th>
+                                                <td>{{ file.filename }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Orijinal Yol:</th>
+                                                <td>{{ file.original_path }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Karantina Yolu:</th>
+                                                <td>{{ file.quarantine_path }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Tehdit Türü:</th>
+                                                <td>{{ file.malware_type }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Tarama Aracı:</th>
+                                                <td>{{ file.scan_tool }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Karantina Zamanı:</th>
+                                                <td>{{ file.quarantine_time|date:"d.m.Y H:i:s" }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Dosya Boyutu:</th>
+                                                <td>{{ file.file_size|filesizeformat }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>SHA256 Hash:</th>
+                                                <td><code>{{ file.file_hash }}</code></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Tespit Eden:</th>
+                                                <td>{{ file.detected_by_user }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Risk Seviyesi:</th>
+                                                <td>
+                                                    {% if file.threat_level == 'high' %}
+                                                        <span class="badge bg-danger">Yüksek</span>
+                                                    {% elif file.threat_level == 'medium' %}
+                                                        <span class="badge bg-warning">Orta</span>
+                                                    {% else %}
+                                                        <span class="badge bg-success">Düşük</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Neden:</th>
+                                                <td>{{ file.reason }}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-shield-check"></i> Karantinada dosya bulunmuyor.
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 
