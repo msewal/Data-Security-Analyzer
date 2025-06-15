@@ -1,6 +1,10 @@
 import re
 import os
+import logging
 from django.conf import settings
+from list.views import get_items, format_size, get_owner, get_group
+
+logger = logging.getLogger(__name__)
 
 # Global regex patterns for sensitive data detection
 sensitive_patterns = {
@@ -182,3 +186,34 @@ def should_scan_file(file_path):
         '.docx'  # Added support for Word documents
     }
     return os.path.splitext(file_path)[1].lower() in text_extensions 
+
+def is_safe_path(path):
+    try:
+        if path.startswith('C:'):
+            path = '/mnt/c' + path[2:].replace('\\\\', '/')
+        if not os.path.isabs(path):
+            return False
+        if re.search(r'[<>:"|?*]', path):
+            return False
+        if not os.path.exists(path):
+            return False
+        if not os.access(path, os.R_OK):
+            return False
+        return True
+    except Exception as e:
+        logger.error(f"Path safety check error for {path}: {str(e)}")
+        return False
+
+def normalize_path(path):
+    try:
+        if path == '/' or path == '\\\\':
+            return '/'
+        if path.startswith('C:'):
+            path = '/mnt/c' + path[2:].replace('\\\\', '/')
+        path = os.path.normpath(path)
+        if not os.path.isabs(path):
+            path = os.path.abspath(path)
+        return path
+    except Exception as e:
+        logger.error(f"Path normalization error for {path}: {str(e)}")
+        return path 

@@ -1,0 +1,63 @@
+🎯 ŞİMDİ NE YAPALIM?
+Şunlardan birini seçebilirsin:
+
+🧪 Test Aşaması:
+
+Örnek bir dizin ya da test verisi ile regex aramasını çalıştırıp çıktıları birlikte yorumlayabiliriz.
+
+“Tam Tarama” ve “Kısmi Tarama” farkını test edebiliriz.
+
+🛡️ Güvenlik Katmanı:
+
+Tarama sonrası bulunan eşleşmeleri şifrele, maskele ya da karantinaya al seçeneklerini ekleyebiliriz.
+
+📊 Dashboard:
+
+Toplam eşleşme sayısı, en çok eşleşen dosya türü, eşleşme trend grafiği gibi bir görsel özet ekranı oluşturabiliriz.
+
+📁 Dosya İzinleri Hakkında:
+
+Root dışında okuma izni olmayan sistem dosyaları varsa, os.access ile ön kontrol yapılabilir.
+
+Dilersen chmod -R 755 /some/path gibi bir terminal komutuyla test dizinlerini erişilebilir yapabilirsin.
+
+
+
+
+Projeyi inceleyerek karantina ile ilgili fonksiyonları ve arayüz sayfalarını bulalım.
+Karantina ile ilgili fonksiyonlar:
+quarantine_file(request) (regex/views.py):
+Dosyaları karantinaya almak için kullanılan ana fonksiyon
+POST isteği ile çalışır
+Dosyayı karantina dizinine taşır
+Dosya için benzersiz bir isim oluşturur
+Dosya izinlerini 0o000 olarak ayarlar (erişimi engeller)
+QuarantinedFile modelinde bir kayıt oluşturur
+Dosya hash'i ve boyutu gibi bilgileri kaydeder
+quarantine_list(request) (regex/views.py):
+Karantinaya alınmış dosyaların listesini gösteren view fonksiyonu
+QuarantinedFile modelinden tüm kayıtları çeker
+Karantina zamanına göre sıralar
+Karantina ile ilgili arayüz sayfaları:
+regex/quarantine_list.html:
+Karantinaya alınmış dosyaların listelendiği sayfa
+Dosya adı, karantina zamanı, neden karantinaya alındığı gibi bilgileri gösterir
+Ayrıca, karantina işlemleri için kullanılan model:
+malware.models.QuarantinedFile:
+Karantinaya alınan dosyaların bilgilerini saklayan model
+Dosya adı, orijinal yol, karantina yolu, dosya boyutu, hash değeri gibi bilgileri içerir
+Karantina durumu ve nedenini takip eder
+Karantina işlemleri için kullanılan ayarlar:
+settings.QUARANTINE_DIR: Karantina dosyalarının saklanacağı dizin
+Varsayılan olarak settings.MEDIA_ROOT/quarantine dizinini kullanır
+Karantina işlemleri şu şekilde çalışır:
+Bir dosya karantinaya alındığında:
+Dosya benzersiz bir isimle karantina dizinine taşınır
+Dosya izinleri 0o000 olarak ayarlanır (erişim engellenir)
+QuarantinedFile modelinde bir kayıt oluşturulur
+Dosya hash'i ve boyutu gibi bilgiler kaydedilir
+Karantina listesi görüntülendiğinde:
+Tüm karantinaya alınmış dosyalar listelenir
+Karantina zamanına göre sıralanır
+Her dosya için detaylı bilgiler gösterilir
+Bu yapı, hassas verileri içeren dosyaları güvenli bir şekilde izole etmek ve yönetmek için kullanılır.

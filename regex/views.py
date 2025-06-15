@@ -7,6 +7,7 @@ import time
 import json
 import shutil
 import hashlib
+import concurrent.futures
 from django.shortcuts import render, redirect
 from django.http import JsonResponse, HttpResponse
 from django.conf import settings
@@ -38,12 +39,101 @@ try:
 except ImportError:
     PPTX_AVAILABLE = False
 
-from .patterns import (
-    ALL_REGEX_PATTERNS_BACKEND
-)
-
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Add caching for patterns
+_cached_patterns = None
+
+def load_patterns():
+    global _cached_patterns
+    if _cached_patterns is not None:
+        return _cached_patterns
+
+    patterns_file_path = os.path.join(settings.BASE_DIR, 'regex', 'patterns.json')
+    loaded_patterns = []
+    try:
+        with open(patterns_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            for pattern_dict in data.get('patterns', []):
+                try:
+                    flags = re.IGNORECASE | re.MULTILINE
+                    # 'greedy' field is for semantic meaning, regex behavior is determined by the pattern itself
+                    
+                    compiled_pattern = re.compile(pattern_dict['regex'], flags)
+                    loaded_patterns.append({
+                        'name': pattern_dict['name'],
+                        'regex': pattern_dict['regex'], # Keep original regex string for display
+                        'compiled_pattern': compiled_pattern,
+                        'description': pattern_dict.get('description'),
+                        'category': pattern_dict.get('category'),
+                        'risk_level': pattern_dict.get('risk_level'),
+                        'validation_function': pattern_dict.get('validation_function'),
+                        'subcategory': pattern_dict.get('subcategory', 'Genel') # Default subcategory if not provided
+                    })
+                except re.error as e:
+                    logger.error(f"Error compiling pattern {pattern_dict.get('regex', 'N/A')}: {str(e)}")
+                    continue
+    except FileNotFoundError:
+        logger.error(f"Patterns file not found at: {patterns_file_path}")
+    except json.JSONDecodeError as e:
+        logger.error(f"Error decoding JSON from patterns file: {str(e)}")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred while loading patterns: {str(e)}")
+
+    _cached_patterns = loaded_patterns
+    return _cached_patterns
+
+# Placeholder validation functions
+def validate_tc_kimlik(tc_kimlik_no):
+    # Check if the number is 11 digits and all are digits
+    if not isinstance(tc_kimlik_no, str) or len(tc_kimlik_no) != 11 or not tc_kimlik_no.isdigit():
+        return False
+    
+    # First digit cannot be 0
+    if tc_kimlik_no[0] == '0':
+        return False
+    
+    digits = [int(d) for d in tc_kimlik_no]
+
+    # Calculate 10th digit based on the algorithm
+    sum_odd = digits[0] + digits[2] + digits[4] + digits[6] + digits[8]
+    sum_even = digits[1] + digits[3] + digits[5] + digits[7]
+    
+    tenth_digit_calc = (sum_odd * 7 - sum_even) % 10
+    
+    if tenth_digit_calc != digits[9]:
+        return False
+        
+    # Calculate 11th digit based on the algorithm
+    eleventh_digit_calc = (sum(digits[i] for i in range(10))) % 10
+    
+    if eleventh_digit_calc != digits[10]:
+        return False
+
+    return True
+
+def validate_luhn(card_no):
+    # Remove any non-digit characters
+    cleaned_card_no = re.sub(r'\D', '', card_no)
+    
+    if not cleaned_card_no.isdigit() or len(cleaned_card_no) < 13 or len(cleaned_card_no) > 19:
+        return False
+
+    # Luhn algorithm implementation
+    digits = [int(d) for d in cleaned_card_no]
+    
+    # Double every second digit from the right
+    for i in range(len(digits) - 2, -1, -2):
+        digits[i] *= 2
+        if digits[i] > 9:
+            digits[i] -= 9
+            
+    # Sum all digits
+    total_sum = sum(digits)
+    
+    # If the total sum is divisible by 10, the number is valid
+    return total_sum % 10 == 0
 
 def regex_search(request):
     """View function for the regex search page"""
@@ -53,6 +143,134 @@ def is_safe_path(path):
     """Check if the path is safe to scan"""
     # Add your path safety checks here
     return True
+
+def _scan_single_file(file_path, combined_patterns, quarantined_paths, file_types, logger):
+    results_for_file = {
+        'processed_files_count': 0,
+        'matched_files_count': 0,
+        'error_files': [],
+        'skipped_files': [],
+        'file_results': None
+    }
+
+    file_name = os.path.basename(file_path)
+    file_ext = os.path.splitext(file_name)[1].lower().lstrip('.')
+
+    # Check if file is quarantined
+    if file_path in quarantined_paths:
+        results_for_file['skipped_files'].append({'file': file_path, 'reason': 'Karantinaya alınmış dosya'})
+        return results_for_file
+
+    # Skip certain file types
+    if file_name.startswith('.') or file_name.endswith(('.pyc', '.pyo', '.pyd', '.so', '.dll', '.exe', '.bin')):
+        results_for_file['skipped_files'].append({'file': file_path, 'reason': 'Gizli veya derlenmiş dosya'})
+        return results_for_file
+
+    # Check file extension
+    if file_types and file_ext not in file_types:
+        results_for_file['skipped_files'].append({'file': file_path, 'reason': 'Desteklenmeyen dosya uzantısı'})
+        return results_for_file
+
+    if not is_safe_path(file_path):
+        logger.debug(f"Skipping unsafe file: {file_path}")
+        results_for_file['skipped_files'].append({'file': file_path, 'reason': 'Güvensiz yol'})
+        return results_for_file
+
+    # Skip binary files and large files
+    try:
+        if os.path.getsize(file_path) > 5 * 1024 * 1024:  # Skip files larger than 5MB
+            logger.debug(f"Skipping large file: {file_path}")
+            results_for_file['skipped_files'].append({'file': file_path, 'reason': 'Büyük dosya (>5MB)'})
+            return results_for_file
+    except OSError as e:
+        logger.error(f"Error getting file size for {file_path}: {str(e)}")
+        results_for_file['error_files'].append({'path': file_path, 'error': str(e)})
+        return results_for_file
+
+    content_lines = []
+    try:
+        if file_ext in ['docx']:
+            doc = Document(file_path)
+            content_lines = [p.text for p in doc.paragraphs]
+        elif file_ext in ['pdf']:
+            try:
+                with open(file_path, 'rb') as f:
+                    reader = PyPDF2.PdfReader(f)
+                    content_lines = [page.extract_text() or '' for page in reader.pages]
+            except Exception as e:
+                results_for_file['skipped_files'].append({'file': file_path, 'reason': f'PDF okunamadı: {str(e)}'})
+                return results_for_file
+        else:
+            encodings = ['utf-8', 'latin-1', 'cp1254', 'iso-8859-9']
+            for enc in encodings:
+                try:
+                    with open(file_path, 'r', encoding=enc) as f:
+                        for line in f:
+                            content_lines.append(line)
+                    break
+                except (PermissionError, FileNotFoundError, UnicodeDecodeError) as e:
+                    continue
+            else:
+                results_for_file['error_files'].append({'path': file_path, 'error': 'Dosya okunamadı veya erişim izni yok'})
+                return results_for_file
+    except Exception as e:
+        results_for_file['error_files'].append({'path': file_path, 'error': str(e)})
+        return results_for_file
+
+    results_for_file['processed_files_count'] = 1
+    found_matches_in_file = False
+    pattern_matches = {}
+    
+    for line_num, line_content in enumerate(content_lines, 1):
+        for pattern_info in combined_patterns:
+            pattern = pattern_info['compiled_pattern']
+            category = pattern_info['category']
+            subcategory = pattern_info['subcategory']
+            validation_func_name = pattern_info.get('validation_function')
+
+            try:
+                matches = pattern.findall(line_content) if line_content else []
+                if matches:
+                    validated_matches = []
+                    for match in matches:
+                        is_valid = True
+                        if validation_func_name:
+                            validation_func = globals().get(validation_func_name)
+                            if validation_func and callable(validation_func):
+                                if not validation_func(match):
+                                    is_valid = False
+                                    logger.debug(f"Match '{match}' failed validation for {validation_func_name} in file {file_path} at line {line_num}")
+                            else:
+                                logger.warning(f"Validation function '{validation_func_name}' not found or not callable.")
+
+                        if is_valid:
+                            validated_matches.append({
+                                'match': match,
+                                'line_number': line_num,
+                                'line_content': line_content.strip()
+                            })
+
+                    if validated_matches:
+                        found_matches_in_file = True
+                        if category not in pattern_matches:
+                            pattern_matches[category] = {}
+                        if subcategory not in pattern_matches[category]:
+                            pattern_matches[category][subcategory] = []
+                        pattern_matches[category][subcategory].extend(validated_matches)
+
+            except Exception as e:
+                logger.error(f"Error during pattern matching for {pattern_info.get('name', 'N/A')} in file {file_path} at line {line_num}: {str(e)}")
+                continue
+
+    if found_matches_in_file:
+        results_for_file['matched_files_count'] = 1
+        results_for_file['file_results'] = {
+            'file_path': file_path,
+            'matches': pattern_matches,
+            'encoded_file_path': urllib.parse.quote_plus(file_path)
+        }
+    
+    return results_for_file
 
 def sensitive_scan(request):
     """View function for the sensitive data scan page"""
@@ -115,7 +333,7 @@ def sensitive_scan(request):
         # Compile regex patterns for selected categories and subcategories
         combined_patterns = []
         for category in selected_categories:
-            patterns = ALL_REGEX_PATTERNS_BACKEND.get(category, [])
+            patterns = load_patterns()
             logger.info(f"Found {len(patterns)} patterns for category: {category}")
             
             # Eğer bu kategori için alt kategoriler seçilmişse, sadece onları derle
@@ -124,170 +342,104 @@ def sensitive_scan(request):
             
             for pattern_dict in patterns:
                 try:
-                    compiled_pattern = re.compile(pattern_dict['pattern'], re.IGNORECASE | re.MULTILINE)
+                    compiled_pattern = re.compile(pattern_dict['regex'], re.IGNORECASE | re.MULTILINE)
                     combined_patterns.append({
-                        'pattern': compiled_pattern,
+                        'name': pattern_dict['name'],
+                        'regex': pattern_dict['regex'],
+                        'compiled_pattern': compiled_pattern,
+                        'description': pattern_dict.get('description'),
                         'category': category,
-                        'subcategory': pattern_dict['subcategory']
+                        'subcategory': pattern_dict['subcategory'],
+                        'risk_level': pattern_dict.get('risk_level'),
+                        'validation_function': pattern_dict.get('validation_function')
                     })
                 except re.error as e:
-                    logger.error(f"Error compiling pattern {pattern_dict['pattern']}: {str(e)}")
+                    logger.error(f"Error compiling pattern {pattern_dict['regex']}: {str(e)}")
                     continue
 
         logger.info(f"Total combined patterns: {len(combined_patterns)}")
 
+        # Fetch all quarantined file paths to exclude them from scanning
+        quarantined_paths = set(QuarantinedFile.objects.filter(status='quarantined').values_list('original_path', flat=True))
+        logger.info(f"Found {len(quarantined_paths)} files in quarantine. These will be skipped.")
+
+        files_to_scan = []
+        try:
+            logger.info("Starting file walk to collect paths...")
+            for root, dirs, files in os.walk(directory_path):
+                # Skip certain directories
+                dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ['node_modules', 'venv', '__pycache__', 'quarantine']]
+
+                if time.time() - start_time > 300: # Timeout for collecting files
+                    logger.warning("File collection timeout reached after 5 minutes")
+                    return render(request, 'regex/sensitive_scan.html', {
+                        'error_message': 'Dosya toplama zaman aşımına uğradı (5 dakika). Lütfen daha küçük bir dizin seçin.'
+                    })
+
+                for file_name in files:
+                    file_path = os.path.join(root, file_name)
+                    files_to_scan.append(file_path)
+            logger.info(f"Collected {len(files_to_scan)} files for scanning.")
+
+        except Exception as e:
+            logger.error(f"Error during file path collection: {str(e)}")
+            return render(request, 'regex/sensitive_scan.html', {
+                'error_message': f'Dosya yolları toplanırken bir hata oluştu: {str(e)}'
+            })
+
+        # Use ThreadPoolExecutor for parallel processing
         results = []
         processed_files_count = 0
         matched_files_count = 0
         error_files = []
         skipped_files = []
 
-        # Fetch all quarantined file paths to exclude them from scanning
-        quarantined_paths = set(QuarantinedFile.objects.filter(status='quarantined').values_list('original_path', flat=True))
-        logger.info(f"Found {len(quarantined_paths)} files in quarantine. These will be skipped.")
+        MAX_WORKERS = os.cpu_count() or 1 # Use all available CPU cores, or at least 1
+        logger.info(f"Starting ThreadPoolExecutor with {MAX_WORKERS} workers.")
 
-        try:
-            logger.info("Starting file walk...")
-            for root, dirs, files in os.walk(directory_path):
-                # Skip certain directories
-                dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ['node_modules', 'venv', '__pycache__', 'quarantine']]
-                
-                # Check for timeout (5 minutes)
-                if time.time() - start_time > 300:
-                    logger.warning("Scan timeout reached after 5 minutes")
-                    return render(request, 'regex/sensitive_scan.html', {
-                        'error_message': 'Tarama zaman aşımına uğradı (5 dakika). Lütfen daha küçük bir dizin seçin.',
-                        'partial_results': results,
-                        'processed_files_count': processed_files_count,
-                        'matched_files_count': matched_files_count,
-                        'error_files': error_files,
-                        'skipped_files': skipped_files
-                    })
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # Submit tasks to the executor
+            future_to_file = {
+                executor.submit(_scan_single_file, file_path, combined_patterns, quarantined_paths, file_types, logger):
+                file_path for file_path in files_to_scan
+            }
 
-                logger.info(f"Processing directory: {root}")
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    
-                    # Check if file is quarantined
-                    if file_path in quarantined_paths:
-                        skipped_files.append({'file': file_path, 'reason': 'Karantinaya alınmış dosya'})
-                        continue
+            for future in concurrent.futures.as_completed(future_to_file):
+                file_path = future_to_file[future]
+                if time.time() - start_time > 300: # Timeout for scanning
+                    logger.warning(f"Scan timeout reached during processing of {file_path}. Stopping further processing.")
+                    executor.shutdown(wait=False, cancel_futures=True) # Attempt to cancel remaining tasks
+                    break # Exit the loop
 
-                    # Skip certain file types
-                    if file.startswith('.') or file.endswith(('.pyc', '.pyo', '.pyd', '.so', '.dll', '.exe', '.bin')):
-                        skipped_files.append({'file': file_path, 'reason': 'Gizli veya derlenmiş dosya'})
-                        continue
+                try:
+                    scan_result = future.result()
+                    processed_files_count += scan_result['processed_files_count']
+                    matched_files_count += scan_result['matched_files_count']
+                    error_files.extend(scan_result['error_files'])
+                    skipped_files.extend(scan_result['skipped_files'])
+                    if scan_result['file_results']:
+                        results.append(scan_result['file_results'])
+                except Exception as exc:
+                    logger.error(f'{file_path} dosyasında hata oluştu: {exc}')
+                    error_files.append({'path': file_path, 'error': str(exc)})
 
-                    # Check file extension
-                    file_ext = os.path.splitext(file)[1].lower().lstrip('.')
-                    if file_types and file_ext not in file_types:
-                        skipped_files.append({'file': file_path, 'reason': 'Desteklenmeyen dosya uzantısı'})
-                        continue
+        end_time = time.time()
+        duration = end_time - start_time
+        logger.info(f"Scan finished in {duration:.2f} seconds.")
+        logger.info(f"Processed {processed_files_count} files, found matches in {matched_files_count} files.")
+        logger.info(f"Total errors: {len(error_files)}, total skipped: {len(skipped_files)}")
 
-                    if not is_safe_path(file_path):
-                        logger.debug(f"Skipping unsafe file: {file_path}")
-                        skipped_files.append({'file': file_path, 'reason': 'Güvensiz yol'})
-                        continue
-
-                    # Skip binary files and large files
-                    try:
-                        if os.path.getsize(file_path) > 5 * 1024 * 1024:  # Skip files larger than 5MB
-                            logger.debug(f"Skipping large file: {file_path}")
-                            skipped_files.append({'file': file_path, 'reason': 'Büyük dosya (>5MB)'})
-                            continue
-                    except OSError as e:
-                        logger.error(f"Error getting file size for {file_path}: {str(e)}")
-                        error_files.append({'path': file_path, 'error': str(e)})
-                        continue
-
-                    # Dosya içeriğini oku (uzantıya göre)
-                    content = None
-                    try:
-                        if file_ext in ['docx']:
-                            doc = Document(file_path)
-                            content = '\n'.join([p.text for p in doc.paragraphs])
-                        elif file_ext in ['pdf']:
-                            # PDF desteği için PyPDF2 veya benzeri kullanılabilir
-                            try:
-                                with open(file_path, 'rb') as f:
-                                    reader = PyPDF2.PdfReader(f)
-                                    content = '\n'.join(page.extract_text() or '' for page in reader.pages)
-                            except Exception as e:
-                                skipped_files.append({'file': file_path, 'reason': f'PDF okunamadı: {str(e)}'})
-                                continue
-                        else:
-                            encodings = ['utf-8', 'latin-1', 'cp1254', 'iso-8859-9']
-                            for enc in encodings:
-                                try:
-                                    with open(file_path, 'r', encoding=enc) as f:
-                                        content = f.read()
-                                    break
-                                except (PermissionError, FileNotFoundError, UnicodeDecodeError) as e:
-                                    continue
-                            else:
-                                error_files.append({'path': file_path, 'error': 'Dosya okunamadı veya erişim izni yok'})
-                                continue
-                    except Exception as e:
-                        error_files.append({'path': file_path, 'error': str(e)})
-                        continue
-
-                    processed_files_count += 1
-                    if processed_files_count % 100 == 0:
-                        logger.info(f"Processed {processed_files_count} files so far...")
-
-                    pattern_matches = {}
-                    for pattern_info in combined_patterns:
-                        pattern = pattern_info['pattern']
-                        category = pattern_info['category']
-                        subcategory = pattern_info['subcategory']
-                        try:
-                            matches = pattern.findall(content) if content else []
-                            if matches:
-                                if category not in pattern_matches:
-                                    pattern_matches[category] = {}
-                                if subcategory not in pattern_matches[category]:
-                                    pattern_matches[category][subcategory] = []
-                                pattern_matches[category][subcategory].extend(matches)
-                                logger.debug(f"Found match in {file_path}: {subcategory}")
-                        except Exception as e:
-                            logger.error(f"Error processing pattern in {file_path}: {str(e)}")
-                            continue
-
-                    if pattern_matches:
-                        matched_files_count += 1
-                        results.append({
-                            'file_path': file_path,
-                            'matches': pattern_matches
-                        })
-                        logger.info(f"Found matches in file: {file_path}")
-
-        except Exception as e:
-            logger.error(f"Error during file processing: {str(e)}")
-            return render(request, 'regex/sensitive_scan.html', {
-                'error_message': f'Dosya işleme sırasında bir hata oluştu: {str(e)}',
-                'partial_results': results,
-                'processed_files_count': processed_files_count,
-                'matched_files_count': matched_files_count,
-                'error_files': error_files,
-                'skipped_files': skipped_files
-            })
-
-        scan_duration = time.time() - start_time
-        logger.info(f"Search completed in {scan_duration:.2f} seconds. Processed files: {processed_files_count}, Matched files: {matched_files_count}")
-
-        # Sonuçları session'a kaydet
-        request.session['scan_results'] = {
+        return render(request, 'regex/sensitive_scan.html', {
             'results': results,
-            'scan_path': directory_path,
+            'scan_duration': f"{duration:.2f}",
             'processed_files_count': processed_files_count,
             'matched_files_count': matched_files_count,
             'error_files': error_files,
             'skipped_files': skipped_files,
-            'scan_duration': f"{scan_duration:.2f}",
-            'scan_time': time.strftime('%Y-%m-%d %H:%M:%S')
-        }
-        return redirect(reverse('regex:regex_search_results'))
-
+            'selected_categories': selected_categories,
+            'selected_file_types': file_types,
+            'directory_path': directory_path
+        })
     return render(request, 'regex/sensitive_scan.html')
 
 def sensitive_scan_detail(request, file_path):
@@ -311,16 +463,16 @@ def sensitive_scan_detail(request, file_path):
                 'file_path': decoded_file_path
             })
 
-        for category, patterns in ALL_REGEX_PATTERNS_BACKEND.items():
+        for category, patterns in load_patterns():
             category_matches = {}
             for pattern_dict in patterns:
                 try:
-                    pattern = re.compile(pattern_dict['pattern'], re.IGNORECASE | re.MULTILINE)
+                    pattern = re.compile(pattern_dict['regex'], re.IGNORECASE | re.MULTILINE)
                     found_matches = pattern.findall(content)
                     if found_matches:
                         category_matches[pattern_dict['subcategory']] = found_matches
                 except re.error as e:
-                    logger.error(f"Regex error with pattern {pattern_dict['pattern']}: {str(e)}")
+                    logger.error(f"Regex error with pattern {pattern_dict['regex']}: {str(e)}")
                     continue
             
             if category_matches:
@@ -359,18 +511,18 @@ def regex_search_detail_view(request, file_path):
             })
 
         for i, line in enumerate(lines, 1):
-            for category, patterns in ALL_REGEX_PATTERNS_BACKEND.items():
+            for category, patterns in load_patterns():
                 for pattern_dict in patterns:
                     try:
-                        if re.search(pattern_dict['pattern'], line):
+                        if re.search(pattern_dict['regex'], line):
                             matches.append({
                                 'line_number': i,
                                 'line_content': line.strip(),
                                 'pattern_type': pattern_dict['subcategory'],
-                                'pattern': pattern_dict['pattern']
+                                'pattern': pattern_dict['regex']
                             })
                     except re.error as e:
-                        logger.error(f"Regex error with pattern {pattern_dict['pattern']}: {str(e)}")
+                        logger.error(f"Regex error with pattern {pattern_dict['regex']}: {str(e)}")
                         continue
 
     except Exception as e:
@@ -386,7 +538,19 @@ def regex_search_detail_view(request, file_path):
     })
 
 def api_get_regex_patterns(request):
-    return JsonResponse(ALL_REGEX_PATTERNS_BACKEND)
+    patterns = load_patterns()
+    # Send only necessary info, not compiled regex objects
+    serializable_patterns = []
+    for p in patterns:
+        serializable_patterns.append({
+            'name': p['name'],
+            'regex': p['regex'],
+            'description': p.get('description', ''),
+            'category': p.get('category', ''),
+            'subcategory': p.get('subcategory', ''),
+            'risk_level': p.get('risk_level', '')
+        })
+    return JsonResponse({'patterns': serializable_patterns})
 
 def regex_search_results(request):
     """View function for displaying regex search results"""
@@ -593,6 +757,8 @@ def quarantine_file(request):
         # Eğer form verisi yoksa, JSON verisini dene
         if not file_path and request.body:
             try:
+                print("GELEN VERİ:", repr(request.body))  # ham veri
+                print("TİP:", type(request.body))         # veri tipi
                 data = json.loads(request.body)
                 file_path = data.get('file_path')
                 threat_type = data.get('threat_type', 'Sensitive Data')
@@ -636,13 +802,13 @@ def quarantine_file(request):
         try:
             quarantined_file = QuarantinedFile.objects.create(
                 filename=file_name,
-            original_path=file_path,
+                original_path=file_path,
                 quarantine_path=quarantine_path,
                 quarantine_time=datetime.now(),
                 threat_type=threat_type,
                 threat_level=threat_level,
                 status='quarantined',
-            scan_tool='regex_scanner',
+                scan_tool='regex_scanner',
                 detected_by_user=request.user.username if request.user.is_authenticated else 'Anonymous',
                 file_size=os.path.getsize(quarantine_path),
                 file_hash=file_hash

@@ -1,0 +1,496 @@
+import io
+import os
+import re
+import urllib.parse
+import logging
+import time
+import json
+import shutil
+import hashlib
+from django.shortcuts import render, redirect
+from django.http import JsonResponse, HttpResponse
+from django.conf import settings
+from django.urls import reverse
+from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.csrf import csrf_exempt
+from malware.models import QuarantinedFile
+from django.contrib import messages
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+from .models import ScanResult, MatchDetail
+
+# Office ve PDF işleme için gerekli importlar
+try:
+    from docx import Document
+    DOCX_AVAILABLE = True
+except ImportError:
+    DOCX_AVAILABLE = False
+
+try:
+    import PyPDF2
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import letter
+    PDF_AVAILABLE = True
+except ImportError:
+    PDF_AVAILABLE = False
+
+try:
+    from pptx import Presentation
+    PPTX_AVAILABLE = True
+except ImportError:
+    PPTX_AVAILABLE = False
+
+from .patterns import (
+    REGEX_PATTERNS, validate_tc_kimlik, validate_luhn, get_context_lines, should_scan_file
+)
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Eşleşmeleri saklamak için bir liste
+ALL_MATCHES = []
+
+# Çıkarılan dizeleri saklamak için bir liste
+EXTRACTED_STRINGS = []
+
+# Genel bir havuz boyutu belirle (sistem kaynaklarına göre ayarlanabilir)
+# Örneğin, CPU çekirdek sayısına göre bir çarpan kullanılabilir.
+# MAX_WORKERS = os.cpu_count() * 2 # Ya da sabit bir sayı, örn. 4, 8
+MAX_WORKERS = 4 # Geçici olarak sabit bir değer belirleyelim
+
+# Dosya işleme için ThreadPoolExecutor
+file_processing_executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+
+def regex_search(request):
+    """View function for the regex search page"""
+    return render(request, 'regex/regex_search.html')
+
+def is_safe_path(path):
+    """Check if the path is safe to scan"""
+    # Add your path safety checks here
+    # Şimdilik basit bir kontrol, daha sonra geliştirilebilir.
+    # Yolun var olup olmadığını ve uygulamanın kontrolü dışındaki hassas dizinleri içermediğini kontrol edebiliriz.
+    # Örneğin, kök dizin veya sistem dizinleri gibi.
+    if not path or not os.path.exists(path):
+        return False
+    # Eğer settings.py'de tanımlanmış bir base_dir varsa, onun altında mı diye kontrol edilebilir.
+    # Güvenlik için, tarama yapılan dizinin uygulamanın kendi dizinlerinin dışında olması önerilir.
+    # Ancak burada kullanıcının istediği herhangi bir dizini taraması bekleniyor.
+    # Dolayısıyla, yalnızca temel varlık kontrolü yapıyoruz.
+    return True
+
+def sensitive_scan(request):
+    """View function for the sensitive data scan page"""
+    global ALL_MATCHES, EXTRACTED_STRINGS
+    if request.method == 'POST':
+        logger.info("POST request received for sensitive scan")
+        start_time = time.time()
+        ALL_MATCHES = []  # Her yeni taramada sonuçları sıfırla
+        EXTRACTED_STRINGS = [] # Her yeni taramada çıkarılan dizeleri sıfırla
+        
+        # Get form data
+        directory_path = request.POST.get('directory')
+        file_types = request.POST.getlist('file_types')
+        selected_categories = request.POST.getlist('categories')
+        selected_subcategories = {}
+        
+        # Alt kategorileri topla
+        for key, value in request.POST.items():
+            if key.startswith('subcategories['):
+                category = key.split('[')[1].split(']')[0]
+                if category not in selected_subcategories:
+                    selected_subcategories[category] = []
+                selected_subcategories[category].append(value)
+
+        logger.info(f"Form data received - Directory: {directory_path}")
+        logger.info(f"Selected categories: {selected_categories}")
+        logger.info(f"Selected subcategories: {selected_subcategories}")
+        logger.info(f"File types: {file_types}")
+
+        if not directory_path:
+            logger.error("No directory path provided")
+            return render(request, 'regex/sensitive_scan.html', {
+                'error_message': 'Lütfen bir dizin yolu girin.'
+            })
+
+        if not selected_categories:
+            logger.error("No categories selected")
+            return render(request, 'regex/sensitive_scan.html', {
+                'error_message': 'Lütfen en az bir kategori seçin.'
+            })
+
+        if not is_safe_path(directory_path):
+            logger.error(f"Unsafe directory path provided: {directory_path}")
+            return render(request, 'regex/sensitive_scan.html', {
+                'error_message': 'Girilen dizin yolu güvenli değil veya mevcut değil.'
+            })
+
+        # Check if directory is accessible
+        try:
+            os.listdir(directory_path)
+            logger.info(f"Successfully accessed directory: {directory_path}")
+        except PermissionError:
+            logger.error(f"Permission denied for directory: {directory_path}")
+            return render(request, 'regex/sensitive_scan.html', {
+                'error_message': 'Dizine erişim izniniz yok.'
+            })
+        except Exception as e:
+            logger.error(f"Error accessing directory {directory_path}: {str(e)}")
+            return render(request, 'regex/sensitive_scan.html', {
+                'error_message': f'Dizine erişim sırasında bir hata oluştu: {str(e)}'
+            })
+
+        # Compile regex patterns for selected categories and subcategories
+        filtered_patterns = []
+        for pattern_info in REGEX_PATTERNS:
+            if pattern_info['category'] in selected_categories:
+                if pattern_info['category'] in selected_subcategories:
+                    if pattern_info['name'] in selected_subcategories[pattern_info['category']]:
+                        filtered_patterns.append(pattern_info)
+                else:
+                    filtered_patterns.append(pattern_info)
+
+        logger.info(f"Total filtered patterns: {len(filtered_patterns)}")
+
+        processed_files_count = 0
+        matched_files_count = 0
+        error_files = []
+        skipped_files = []
+
+        quarantined_paths = set(QuarantinedFile.objects.filter(status='quarantined').values_list('original_path', flat=True))
+        logger.info(f"Found {len(quarantined_paths)} files in quarantine. These will be skipped.")
+
+        files_to_process = []
+        for root, dirs, files in os.walk(directory_path):
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ['node_modules', 'venv', '__pycache__', 'quarantine']]
+            for file in files:
+                file_path = os.path.join(root, file)
+                if file_path in quarantined_paths:
+                    skipped_files.append({'file': file_path, 'reason': 'Karantinaya alınmış dosya'})
+                    continue
+                if not should_scan_file(file_path):
+                    skipped_files.append({'file': file_path, 'reason': 'Desteklenmeyen dosya uzantısı veya gizli/derlenmiş dosya'})
+                    continue
+
+                try:
+                    if os.path.getsize(file_path) > settings.MAX_FILE_SIZE_FOR_REGEX_SCAN:
+                        skipped_files.append({'file': file_path, 'reason': f'Büyük dosya (>{settings.MAX_FILE_SIZE_FOR_REGEX_SCAN / (1024 * 1024):.0f}MB)'})
+                        continue
+                except OSError as e:
+                    error_files.append({'path': file_path, 'error': str(e)})
+                    continue
+                files_to_process.append(file_path)
+
+        logger.info(f"Total files to process: {len(files_to_process)}")
+
+        futures = [file_processing_executor.submit(process_file_for_regex, f_path, filtered_patterns) for f_path in files_to_process]
+
+        for future in futures:
+            try:
+                file_result = future.result()
+                processed_files_count += 1
+                if file_result:
+                    ALL_MATCHES.extend(file_result['matches'])
+                    EXTRACTED_STRINGS.extend(file_result['extracted_strings'])
+                    if file_result['matched']:
+                        matched_files_count += 1
+                
+                if processed_files_count % 100 == 0:
+                    logger.info(f"Processed {processed_files_count} files so far...")
+            except Exception as e:
+                logger.error(f"Error processing file in thread: {e}")
+                error_files.append({'path': 'Unknown', 'error': str(e)})
+
+        end_time = time.time()
+        duration = end_time - start_time
+
+        # Tarama sonucunu veritabanına kaydet
+        scan_result_obj = ScanResult.objects.create(
+            directory_path=directory_path,
+            scan_duration=duration,
+            processed_files_count=processed_files_count,
+            matched_files_count=matched_files_count,
+            error_files=json.dumps(error_files),
+            skipped_files=json.dumps(skipped_files)
+        )
+
+        # Her bir eşleşmeyi MatchDetail olarak kaydet
+        for match_detail in ALL_MATCHES:
+            MatchDetail.objects.create(
+                scan_result=scan_result_obj,
+                file_path=match_detail['file_path'],
+                line_number=match_detail['line_number'],
+                matched_text=match_detail['matched_text'],
+                pattern_name=match_detail['pattern_name'],
+                category=match_detail['category'],
+                threat_level=match_detail['threat_level'],
+                is_valid=match_detail['is_valid'],
+                context=match_detail['context']
+            )
+
+        logger.info(f"Sensitive scan finished in {duration:.2f} seconds. Processed {processed_files_count} files, found {len(ALL_MATCHES)} matches. Scan results saved to DB (ID: {scan_result_obj.id})")
+
+        # Sonuç sayfasını yeni bir URL ile yönlendir ve ScanResult ID'sini gönder
+        return redirect(reverse('regex:sensitive_scan_results', kwargs={'scan_result_id': scan_result_obj.id}))
+
+    return render(request, 'regex/sensitive_scan.html')
+
+def process_file_for_regex(file_path, patterns):
+    """Bu fonksiyon ayrı bir thread'de çalışacak."""
+    file_matches = []
+    extracted_strings = []
+    file_has_match = False
+
+    try:
+        mode = 'r'
+        if is_binary_file(file_path):
+            mode = 'rb' 
+
+        with open(file_path, mode, errors='ignore') as f:
+            if mode == 'rb':
+                content_reader = io.TextIOWrapper(f, encoding='utf-8', errors='ignore')
+            else:
+                content_reader = f
+
+            line_number = 0
+            for line in content_reader:
+                line_number += 1
+                if mode == 'rb':
+                    extracted_strings.append(line.strip())
+
+                for pattern_info in patterns:
+                    pattern = pattern_info['pattern']
+                    validation_func_name = pattern_info['validation_function']
+                    
+                    for match in pattern.finditer(line):
+                        matched_text = match.group(0)
+                        is_valid = True
+                        if validation_func_name:
+                            validation_function = globals().get(validation_func_name)
+                            if validation_function:
+                                is_valid = validation_function(matched_text)
+                            else:
+                                logger.warning(f"Validation function {validation_func_name} not found for pattern {pattern_info['name']}")
+
+                        match_detail = {
+                            'file_path': file_path,
+                            'line_number': line_number,
+                            'matched_text': matched_text,
+                            'pattern_name': pattern_info['name'],
+                            'category': pattern_info['category'],
+                            'threat_level': pattern_info['threat_level'],
+                            'is_valid': is_valid,
+                            'context': get_context_lines(file_path, line_number)
+                        }
+                        file_matches.append(match_detail)
+                        file_has_match = True
+
+    except UnicodeDecodeError:
+        logger.warning(f"Could not decode {file_path} with utf-8, trying other encodings or skipping.")
+    except Exception as e:
+        logger.error(f"Error reading or processing file {file_path}: {e}")
+
+    return {
+        'file_path': file_path,
+        'matches': file_matches,
+        'extracted_strings': extracted_strings,
+        'matched': file_has_match
+    }
+
+def is_binary_file(filepath):
+    """Dosyanın ikili dosya olup olmadığını kontrol eder."""
+    try:
+        with open(filepath, 'rb') as f:
+            chunk = f.read(1024)
+            return b'\0' in chunk
+    except Exception as e:
+        logger.error(f"Error checking if file is binary {filepath}: {e}")
+        return False 
+
+def sensitive_scan_detail(request, file_path):
+    # Bu fonksiyon henüz güncellenmedi, scan_result_id'ye göre eşleşmeleri çekmeli.
+    file_path = urllib.parse.unquote(file_path)
+    # is_safe_path fonksiyonunu burada da kullanabiliriz
+    if not is_safe_path(file_path):
+        messages.error(request, "Erişmeye çalıştığınız dosya yolu güvenli değil.")
+        return redirect('regex:sensitive_scan') # Veya uygun bir hata sayfasına yönlendir
+
+    # ALL_MATCHES global listesini kullanmak yerine veritabanından çekilmeli
+    # Bu kısım ScanResult ID'sine göre filtrelenmeli
+    # Şimdilik, eski mantığı koruyorum ama bunu değiştirmemiz gerekecek.
+    matched_file_info = None
+    for match_info in ALL_MATCHES:
+        if match_info['file_path'] == file_path:
+            matched_file_info = match_info
+            break
+
+    if matched_file_info:
+        # Eşleşmeleri kategoriye ve alt kategoriye göre grupla
+        grouped_matches = {}
+        for match_detail in matched_file_info['matches']:
+            category = match_detail['category']
+            subcategory = match_detail['subcategory']
+            if category not in grouped_matches:
+                grouped_matches[category] = {}
+            if subcategory not in grouped_matches[category]:
+                grouped_matches[category][subcategory] = []
+            grouped_matches[category][subcategory].append(match_detail)
+
+        return render(request, 'regex/sensitive_scan_detail.html', {
+            'file_path': file_path,
+            'grouped_matches': grouped_matches,
+        })
+    else:
+        messages.info(request, "Bu dosya için hassas veri eşleşmesi bulunamadı.")
+        return redirect('regex:sensitive_scan_results')
+
+def regex_search_detail_view(request, file_path):
+    # Bu fonksiyon da sensitive_scan_detail gibi güncellenmeli
+    return sensitive_scan_detail(request, file_path) # sensitive_scan_detail'e yönlendir
+
+def api_get_regex_patterns(request):
+    # Bu API endpoint'i hala ham desenleri döndürüyor, daha sonra JSON dosyasındaki meta verileri ile birlikte döndürebiliriz.
+    # Şu an patterns.py'den REGEX_PATTERNS'i kullanıyor, bu doğru.
+    # Ancak, bu endpoint'ten dönen veri yapısı muhtemelen front-end'i etkileyecektir.
+    # Geçici olarak, REGEX_PATTERNS'teki her desenin yalnızca adını ve desenini döndürelim.
+    simplified_patterns = []
+    for p in REGEX_PATTERNS:
+        simplified_patterns.append({'name': p['name'], 'pattern': p['pattern'].pattern})
+    return JsonResponse(simplified_patterns, safe=False)
+
+def regex_search_results(request, scan_result_id):
+    # Bu fonksiyon artık session yerine veritabanından sonuçları çekecek.
+    try:
+        scan_result = ScanResult.objects.get(id=scan_result_id)
+        # MatchDetail objelerini çek
+        all_matches = scan_result.matches.all()
+
+        # Dosyaya göre grupla (eskisi gibi)
+        grouped_matches = {}
+        for match in all_matches:
+            file_path = match.file_path
+            if file_path not in grouped_matches:
+                grouped_matches[file_path] = []
+            grouped_matches[file_path].append({
+                'file_path': match.file_path,
+                'line_number': match.line_number,
+                'matched_text': match.matched_text,
+                'pattern_name': match.pattern_name,
+                'category': match.category,
+                'threat_level': match.threat_level,
+                'is_valid': match.is_valid,
+                'context': match.context
+            })
+
+        # Extracted strings'i ScanResult modeline eklemediğimiz için burada boş kalacak.
+        # Eğer extracted_strings'i de göstermek istiyorsak, ScanResult modeline eklememiz gerekir.
+        # Şimdilik boş bir liste olarak bırakıyorum.
+        extracted_strings = [] # Bu kısım daha sonra geliştirilebilir
+
+        return render(request, 'regex/sensitive_scan_results.html', {
+            'directory_path': scan_result.directory_path,
+            'results': all_matches, # Tüm eşleşmeler (MatchDetail objeleri)
+            'grouped_matches': grouped_matches,
+            'extracted_strings': extracted_strings,
+            'processed_files_count': scan_result.processed_files_count,
+            'matched_files_count': scan_result.matched_files_count,
+            'error_files': json.loads(scan_result.error_files), # JSON string'i yükle
+            'skipped_files': json.loads(scan_result.skipped_files), # JSON string'i yükle
+            'scan_duration': f"{scan_result.scan_duration:.2f} saniye",
+            'scan_time': scan_result.scan_time # Scan time'ı bağlama ekle
+        })
+
+    except ScanResult.DoesNotExist:
+        messages.error(request, "Tarama sonucu bulunamadı.")
+        return redirect('regex:sensitive_scan')
+    
+    except json.JSONDecodeError as e:
+        logger.error(f"Error decoding JSON from ScanResult: {e}")
+        messages.error(request, "Tarama sonuçları okunurken bir hata oluştu.")
+        return redirect('regex:sensitive_scan')
+
+
+@require_http_methods(["GET", "POST"])
+def edit_file(request, file_path):
+    # Karantina fonksiyonları burada değil, başka bir uygulamada olmalı (malware).
+    # Ancak, bu fonksiyon muhtemelen bir dosyayı düzenlemek için kullanılıyor.
+    # Bu regex uygulaması için doğrudan geçerli değilse kaldırılabilir veya taşınabilir.
+    file_path = urllib.parse.unquote(file_path)
+    if not is_safe_path(file_path):
+        messages.error(request, "Erişmeye çalıştığınız dosya yolu güvenli değil.")
+        return redirect('regex:sensitive_scan')
+    
+    if request.method == 'POST':
+        new_content = request.POST.get('file_content', '')
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+            messages.success(request, f'{file_path} başarıyla güncellendi.')
+            return redirect(reverse('regex:sensitive_scan_detail', kwargs={'file_path': urllib.parse.quote_plus(file_path)}))
+        except Exception as e:
+            messages.error(request, f'Dosya güncellenirken bir hata oluştu: {str(e)}')
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+    except Exception as e:
+        messages.error(request, f'Dosya okunurken bir hata oluştu: {str(e)}')
+        return redirect('regex:sensitive_scan')
+
+    return render(request, 'regex/edit_file.html', {
+        'file_path': file_path,
+        'content': content
+    })
+
+
+@csrf_exempt
+def quarantine_file(request):
+    # Bu fonksiyon malware uygulamasında olmalı. Buradan kaldırılabilir.
+    if request.method == 'POST':
+        file_path = request.POST.get('file_path')
+        threat_type = request.POST.get('threat_type', 'Unknown')
+        threat_level = request.POST.get('threat_level', 'Düşük')
+
+        if not file_path:
+            return JsonResponse({'status': 'error', 'message': 'Dosya yolu sağlanmadı.'})
+
+        try:
+            original_path = os.path.abspath(file_path)
+            file_name = os.path.basename(original_path)
+            unique_id = hashlib.md5(original_path.encode()).hexdigest()
+            quarantine_path = os.path.join(settings.QUARANTINE_DIR, f'{file_name}.{unique_id}')
+
+            # Dosyayı taşı
+            shutil.move(original_path, quarantine_path)
+
+            # Veritabanına kaydet
+            quarantined_file = QuarantinedFile.objects.create(
+                filename=file_name,
+                original_path=original_path,
+                quarantine_path=quarantine_path,
+                quarantine_time=datetime.now(),
+                threat_type=threat_type,
+                threat_level=threat_level,
+                status='quarantined',
+                scan_tool='regex_scanner',
+                detected_by_user=request.user.username if request.user.is_authenticated else 'Anonymous',
+                file_size=os.path.getsize(quarantine_path),
+            )
+            logger.info(f"File quarantined: {original_path} to {quarantine_path}")
+            return JsonResponse({'status': 'success', 'message': 'Dosya başarıyla karantinaya alındı.'})
+        except FileNotFoundError:
+            logger.error(f"Quarantine: File not found {file_path}")
+            return JsonResponse({'status': 'error', 'message': 'Dosya bulunamadı.'})
+        except PermissionError:
+            logger.error(f"Quarantine: Permission denied {file_path}")
+            return JsonResponse({'status': 'error', 'message': 'İzin reddedildi. Dosya taşıma yetkiniz yok.'})
+        except Exception as e:
+            logger.error(f"Quarantine: An error occurred {file_path}: {e}")
+            return JsonResponse({'status': 'error', 'message': f'Dosya karantinaya alınırken bir hata oluştu: {str(e)}'})
+
+    return JsonResponse({'status': 'error', 'message': 'Geçersiz istek metodu.'})
+
+def quarantine_list(request):
+    # Bu fonksiyon da malware uygulamasında olmalı. Buradan kaldırılabilir.
+    quarantined_files = QuarantinedFile.objects.all().order_by('-quarantine_time')
+    return render(request, 'malware/quarantine_list.html', {'quarantined_files': quarantined_files})

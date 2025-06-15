@@ -1,0 +1,578 @@
+INFO 2025-06-15 00:13:42,880 autoreload 525107 133898096730240 Watching for file changes with StatReloader
+INFO 2025-06-15 00:29:50,530 autoreload 525119 124617805672576 Watching for file changes with StatReloader
+INFO 2025-06-15 00:31:15,614 autoreload 525119 124617805672576 /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/malware/views.py changed, reloading.
+INFO 2025-06-15 00:31:23,845 autoreload 525125 125582811029632 Watching for file changes with StatReloader
+ERROR 2025-06-15 00:31:39,653 patterns 525125 125582811029632 patterns.json not found at /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/patterns.json
+INFO 2025-06-15 00:34:33,284 autoreload 525125 125582811029632 /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/malware/views.py changed, reloading.
+INFO 2025-06-15 00:34:43,102 autoreload 525130 126541058048128 Watching for file changes with StatReloader
+ERROR 2025-06-15 00:34:49,124 patterns 525130 126541058048128 patterns.json not found at /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/patterns.json
+INFO 2025-06-15 00:35:30,411 autoreload 525130 126541058048128 /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/urls.py changed, reloading.
+INFO 2025-06-15 00:35:42,667 autoreload 525134 135746311020672 Watching for file changes with StatReloader
+ERROR 2025-06-15 00:35:50,590 patterns 525134 135746311020672 patterns.json not found at /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/patterns.json
+INFO 2025-06-15 16:46:43,106 autoreload 564 128079343779968 Watching for file changes with StatReloader
+ERROR 2025-06-15 16:46:49,863 patterns 564 128079343779968 patterns.json not found at /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/patterns.json
+INFO 2025-06-15 16:47:40,393 basehttp 564 128079151453888 "GET / HTTP/1.1" 200 36792
+INFO 2025-06-15 16:47:40,484 basehttp 564 128079151453888 "GET /static/css/style.css HTTP/1.1" 200 846
+WARNING 2025-06-15 16:47:41,167 log 564 128079151453888 Not Found: /favicon.ico
+WARNING 2025-06-15 16:47:41,169 basehttp 564 128079151453888 "GET /favicon.ico HTTP/1.1" 404 6005
+INFO 2025-06-15 16:47:43,355 basehttp 564 128079151453888 "GET /malware/scan/ HTTP/1.1" 200 42264
+INFO 2025-06-15 16:47:50,621 basehttp 564 128079151453888 "GET /regex/ HTTP/1.1" 200 17542
+INFO 2025-06-15 16:47:50,717 basehttp 564 128079151453888 "GET /regex/api/regex-patterns/ HTTP/1.1" 200 2
+INFO 2025-06-15 16:47:53,209 basehttp 564 128079151453888 "GET /regex/sensitive-scan/ HTTP/1.1" 200 28738
+INFO 2025-06-15 16:55:37,898 views 564 128079151453888 POST request received for sensitive scan
+INFO 2025-06-15 16:55:37,903 views 564 128079151453888 Form data received - Directory: /mnt/c/Users/Melek/Desktop
+INFO 2025-06-15 16:55:37,904 views 564 128079151453888 Selected categories: ['personalInfo', 'financialData', 'healthData']
+INFO 2025-06-15 16:55:37,905 views 564 128079151453888 Selected subcategories: {'personalInfo': ['Telefon Numarası (Sabit Hat)'], 'financialData': ['Hesap Numarası'], 'healthData': ['Hasta Kayıt Numarası']}
+INFO 2025-06-15 16:55:37,906 views 564 128079151453888 File types: ['txt', 'md', 'log', 'csv', 'tsv', 'json', 'xml', 'doc', 'docx', 'pdf', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', 'png', 'jpg']
+INFO 2025-06-15 16:55:37,913 views 564 128079151453888 Successfully accessed directory: /mnt/c/Users/Melek/Desktop
+INFO 2025-06-15 16:55:37,914 views 564 128079151453888 Total filtered patterns: 0
+INFO 2025-06-15 16:55:37,984 views 564 128079151453888 Found 7 files in quarantine. These will be skipped.
+INFO 2025-06-15 16:55:37,998 views 564 128079151453888 Total files to process: 1
+ERROR 2025-06-15 16:55:38,329 log 564 128079151453888 Internal Server Error: /regex/sensitive-scan/
+Traceback (most recent call last):
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: regex_scanresult
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/views.py", line 221, in sensitive_scan
+    scan_result_obj = ScanResult.objects.create(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/base.py", line 902, in save
+    self.save_base(
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/query.py", line 1864, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.OperationalError: no such table: regex_scanresult
+ERROR 2025-06-15 16:55:38,433 basehttp 564 128079151453888 "POST /regex/sensitive-scan/ HTTP/1.1" 500 176644
+ERROR 2025-06-15 17:02:44,621 patterns 599 137614076309632 patterns.json not found at /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/patterns.json
+INFO 2025-06-15 18:55:16,075 autoreload 1420 135665621581952 Watching for file changes with StatReloader
+ERROR 2025-06-15 18:55:23,086 patterns 1420 135665621581952 patterns.json not found at /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/patterns.json
+INFO 2025-06-15 18:56:42,276 basehttp 1420 135665428895424 "GET /regex/sensitive-scan/ HTTP/1.1" 200 28738
+INFO 2025-06-15 18:57:11,555 views 1420 135665428895424 POST request received for sensitive scan
+INFO 2025-06-15 18:57:11,557 views 1420 135665428895424 Form data received - Directory: /mnt/c/Users/Melek/Desktop
+INFO 2025-06-15 18:57:11,560 views 1420 135665428895424 Selected categories: ['personalInfo', 'financialData', 'healthData']
+INFO 2025-06-15 18:57:11,562 views 1420 135665428895424 Selected subcategories: {'personalInfo': ['Telefon Numarası (Sabit Hat)'], 'financialData': ['Hesap Numarası'], 'healthData': ['Hasta Kayıt Numarası']}
+INFO 2025-06-15 18:57:11,563 views 1420 135665428895424 File types: ['txt', 'md', 'log', 'csv', 'tsv', 'json', 'xml', 'doc', 'docx', 'pdf', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', 'png', 'jpg']
+INFO 2025-06-15 18:57:11,569 views 1420 135665428895424 Successfully accessed directory: /mnt/c/Users/Melek/Desktop
+INFO 2025-06-15 18:57:11,571 views 1420 135665428895424 Total filtered patterns: 0
+INFO 2025-06-15 18:57:11,591 views 1420 135665428895424 Found 7 files in quarantine. These will be skipped.
+INFO 2025-06-15 18:57:11,633 views 1420 135665428895424 Total files to process: 1
+ERROR 2025-06-15 18:57:12,418 log 1420 135665428895424 Internal Server Error: /regex/sensitive-scan/
+Traceback (most recent call last):
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: regex_scanresult
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/views.py", line 208, in sensitive_scan
+    scan_result_obj = ScanResult.objects.create(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/base.py", line 902, in save
+    self.save_base(
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/query.py", line 1864, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/db/backends/sqlite3/base.py", line 360, in execute
+    return super().execute(query, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.OperationalError: no such table: regex_scanresult
+ERROR 2025-06-15 18:57:12,541 basehttp 1420 135665428895424 "POST /regex/sensitive-scan/ HTTP/1.1" 500 176386
+INFO 2025-06-15 18:58:25,406 basehttp 1420 135665428895424 "GET / HTTP/1.1" 200 36792
+INFO 2025-06-15 18:58:30,106 basehttp 1420 135665428895424 "GET /malware/scan/ HTTP/1.1" 200 42264
+INFO 2025-06-15 18:58:42,929 views 1420 135665199085248 Background scan started for / (Scan ID: ae02dd6aa9df32626493d2b943bfae53)
+INFO 2025-06-15 18:58:42,930 basehttp 1420 135665428895424 "POST /malware/api/scan/ HTTP/1.1" 200 116
+INFO 2025-06-15 18:58:43,945 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:44,979 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:46,026 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:47,074 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:48,119 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:49,165 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:50,227 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:51,256 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:52,302 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:53,348 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:54,397 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:55,372 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:56,333 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:57,344 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:58,160 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:59,065 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:59,985 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:58,603 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:58:59,529 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:00,436 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:01,357 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:02,270 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:03,192 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:04,084 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:04,995 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:05,913 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:06,829 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:07,744 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:08,660 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:09,576 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:10,494 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:11,454 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:12,454 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:13,453 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:14,453 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:15,453 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:16,453 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:17,453 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:18,452 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:19,461 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:20,480 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:21,496 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:22,515 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:23,532 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:24,548 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:25,568 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:26,583 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:27,644 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:28,726 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:29,810 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:31,767 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:32,851 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:33,933 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:35,022 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:36,107 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:37,186 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:38,268 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:39,352 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:40,434 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:41,518 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:42,603 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:43,684 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:44,733 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:45,750 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:46,770 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:47,785 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:48,804 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:49,822 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:50,839 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:51,862 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:52,851 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:53,831 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:54,807 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:55,786 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:56,768 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:57,746 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:58,722 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 18:59:59,708 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:00,691 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:01,659 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:02,624 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:03,591 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:03,586 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:04,556 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:05,524 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:06,486 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:07,456 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:08,456 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:09,451 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:10,448 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:11,444 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=ae02dd6aa9df32626493d2b943bfae53 HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:11,601 basehttp 1420 135665428895424 "GET /malware/scan/?path=/mnt HTTP/1.1" 200 28962
+ERROR 2025-06-15 19:00:14,137 views 1420 135665428895424 Error getting file info for /mnt/c/DumpStack.log.tmp: [Errno 13] Permission denied: '/mnt/c/DumpStack.log.tmp'
+ERROR 2025-06-15 19:00:14,139 views 1420 135665428895424 Error getting file info for /mnt/c/hiberfil.sys: [Errno 13] Permission denied: '/mnt/c/hiberfil.sys'
+ERROR 2025-06-15 19:00:14,148 views 1420 135665428895424 Error getting file info for /mnt/c/pagefile.sys: [Errno 13] Permission denied: '/mnt/c/pagefile.sys'
+ERROR 2025-06-15 19:00:14,163 views 1420 135665428895424 Error getting file info for /mnt/c/swapfile.sys: [Errno 13] Permission denied: '/mnt/c/swapfile.sys'
+INFO 2025-06-15 19:00:14,173 basehttp 1420 135665428895424 "GET /malware/scan/?path=/mnt/c HTTP/1.1" 200 37879
+INFO 2025-06-15 19:00:19,580 basehttp 1420 135665428895424 "GET /malware/scan/?path=/mnt/c/Users HTTP/1.1" 200 30998
+INFO 2025-06-15 19:00:25,408 basehttp 1420 135665428895424 "GET /malware/scan/?path=/mnt/c/Users/Melek HTTP/1.1" 200 54496
+INFO 2025-06-15 19:00:44,838 views 1420 135665189643968 Background scan started for /mnt/c/Users/Melek/Documents (Scan ID: 8d923fde713fb8eb61b88bd03d5ed1bc)
+INFO 2025-06-15 19:00:44,840 basehttp 1420 135665428895424 "POST /malware/api/scan/ HTTP/1.1" 200 116
+INFO 2025-06-15 19:00:45,916 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:46,984 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:48,016 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:49,026 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:50,047 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:51,066 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:52,089 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:53,110 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:54,128 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:55,150 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:56,172 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:57,235 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:58,312 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:00:59,396 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:00,478 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:01,565 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:02,596 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:03,595 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:04,595 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:05,603 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:06,609 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:06,211 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:07,218 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:08,225 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:09,232 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:10,240 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:11,248 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:12,256 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:13,285 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:14,335 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:15,380 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:16,427 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:17,473 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:18,519 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:19,568 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:20,614 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:21,695 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:22,777 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:23,861 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:24,944 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:26,027 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:27,111 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:28,130 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:29,139 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:30,166 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:31,197 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:32,223 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:33,255 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:34,281 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:35,310 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:36,338 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:37,375 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:37,317 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:38,357 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:39,399 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:40,439 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:41,482 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:42,522 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:43,563 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:44,602 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:45,662 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:46,745 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:47,828 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:48,912 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:49,996 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:51,078 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:52,162 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:53,220 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:54,279 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:55,339 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:56,401 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:57,461 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:58,521 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:01:59,543 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:00,539 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:01,555 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:02,590 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:03,623 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:04,658 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:05,692 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:06,723 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:07,757 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:08,793 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:08,348 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:09,347 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:10,348 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:11,351 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:12,353 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:13,356 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:14,366 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:15,359 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:16,366 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:17,387 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:18,469 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:19,551 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:20,635 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:21,718 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:22,801 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:23,884 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:24,970 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:26,050 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:27,134 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:28,218 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:29,300 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:30,384 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:31,466 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:32,551 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:33,604 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:34,617 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:35,630 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:36,641 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:37,651 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:38,663 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:39,676 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:39,220 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:40,233 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:41,244 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:42,252 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:43,258 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:44,267 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:45,275 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:46,282 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:47,288 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:48,295 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:49,303 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:50,380 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:51,464 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:52,549 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:53,631 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:54,715 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:55,798 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:56,881 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:57,964 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:02:59,047 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:00,131 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:01,215 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:02,299 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:03,381 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:04,464 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:05,547 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:06,584 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:07,623 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:08,660 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:09,706 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:10,736 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:10,277 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:11,313 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:12,352 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:13,376 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:14,409 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:15,454 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:16,495 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:17,541 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:19,043 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:20,083 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:21,126 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:22,180 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:23,248 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:24,317 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:25,379 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:26,444 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:27,509 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:28,558 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:29,556 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:30,594 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:31,636 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:32,680 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:33,947 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:34,770 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:35,799 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:36,844 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:37,888 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:38,940 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 156
+INFO 2025-06-15 19:03:39,268 views 1420 135665189643968 Total files to scan: 7728
+INFO 2025-06-15 19:03:39,366 views 1420 135665420502720 Starting scan for single file: /mnt/c/Users/Melek/Documents/2104040020-meleksevvalerdogan.zip
+INFO 2025-06-15 19:03:39,367 views 1420 135665178105536 Starting scan for single file: /mnt/c/Users/Melek/Documents/bitirme_projesi_melek_sevval_erdogan.docx
+INFO 2025-06-15 19:03:39,370 views 1420 135665169712832 Starting scan for single file: /mnt/c/Users/Melek/Documents/Data-Security-Analyzer-dev-v3.zip
+INFO 2025-06-15 19:03:40,726 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:40,812 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:40,846 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:41,754 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:42,789 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:43,841 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:44,879 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:46,058 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:47,164 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:48,041 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:49,036 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:50,124 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:50,645 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:51,675 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:52,707 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:53,746 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:54,837 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:55,904 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:57,008 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:58,098 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:03:59,143 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:00,226 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:01,266 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:02,278 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:03,314 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:04,358 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:05,496 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:06,411 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:07,445 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:08,487 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:09,512 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:10,560 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:11,601 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:11,780 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:12,007 autoreload 1420 135665621581952 /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/malware/views.py changed, reloading.
+INFO 2025-06-15 19:04:12,365 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:13,411 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:15,083 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:15,486 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:16,589 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:17,581 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:18,619 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:19,649 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:20,686 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:21,725 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+INFO 2025-06-15 19:04:22,765 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 147
+ERROR 2025-06-15 19:04:22,927 views 1420 135665420502720 Error scanning file /mnt/c/Users/Melek/Documents/2104040020-meleksevvalerdogan.zip: cannot schedule new futures after interpreter shutdown
+INFO 2025-06-15 19:04:22,939 views 1420 135665420502720 Starting scan for single file: /mnt/c/Users/Melek/Documents/desktop.ini
+INFO 2025-06-15 19:04:23,803 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:26,575 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:26,594 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:26,950 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:28,025 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:29,107 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:30,166 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:31,459 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:32,316 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:33,418 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:34,408 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:39,202 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:39,613 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:39,728 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:39,736 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:39,806 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:40,605 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:41,627 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:42,661 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:43,700 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:43,141 basehttp 1420 135665157125824 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:44,196 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:45,219 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:46,264 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:47,339 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+INFO 2025-06-15 19:04:57,480 basehttp 1420 135665428895424 "GET /malware/scan/status/?scan_id=8d923fde713fb8eb61b88bd03d5ed1bc HTTP/1.1" 200 196
+ERROR 2025-06-15 22:09:13,134 patterns 14892 19468 patterns.json not found at C:\Users\Melek\Downloads\Data-Security-Analyzer-main\regex\patterns.json
+ERROR 2025-06-15 19:30:50,917 patterns 1518 126987615297664 patterns.json not found at /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/patterns.json
+INFO 2025-06-15 21:09:13,957 autoreload 1598 128153049165952 Watching for file changes with StatReloader
+INFO 2025-06-15 21:09:41,661 basehttp 1598 128152849393344 "GET / HTTP/1.1" 200 36792
+INFO 2025-06-15 21:09:41,912 basehttp 1598 128152849393344 "GET /static/css/style.css HTTP/1.1" 304 0
+INFO 2025-06-15 21:09:44,045 basehttp 1598 128152849393344 "GET /malware/scan/ HTTP/1.1" 200 26211
+INFO 2025-06-15 21:09:46,123 basehttp 1598 128152849393344 "GET /regex/ HTTP/1.1" 200 17542
+ERROR 2025-06-15 21:09:46,935 log 1598 128152849393344 Internal Server Error: /regex/api/regex-patterns/
+Traceback (most recent call last):
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/views.py", line 348, in api_get_regex_patterns
+    'name': p['name'],
+            ~^^^^^^^^
+TypeError: string indices must be integers, not 'str'
+ERROR 2025-06-15 21:09:46,959 basehttp 1598 128152849393344 "GET /regex/api/regex-patterns/ HTTP/1.1" 500 66530
+INFO 2025-06-15 21:09:48,181 basehttp 1598 128152849393344 "GET /regex/sensitive-scan/ HTTP/1.1" 200 28738
+INFO 2025-06-15 21:10:01,821 views 1598 128152849393344 POST request received for sensitive scan
+INFO 2025-06-15 21:10:01,822 views 1598 128152849393344 Form data received - Directory: /mnt/c/Users/Melek/Desktop
+INFO 2025-06-15 21:10:01,824 views 1598 128152849393344 Selected categories: ['personalInfo', 'financialData', 'healthData']
+INFO 2025-06-15 21:10:01,825 views 1598 128152849393344 Selected subcategories: {'personalInfo': ['Telefon Numarası (Sabit Hat)'], 'financialData': ['Hesap Numarası'], 'healthData': ['Hasta Kayıt Numarası']}
+INFO 2025-06-15 21:10:01,827 views 1598 128152849393344 File types: ['txt', 'md', 'log', 'csv', 'tsv', 'json', 'xml', 'doc', 'docx', 'pdf', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', 'png', 'jpg']
+INFO 2025-06-15 21:10:01,834 views 1598 128152849393344 Successfully accessed directory: /mnt/c/Users/Melek/Desktop
+ERROR 2025-06-15 21:10:01,897 log 1598 128152849393344 Internal Server Error: /regex/sensitive-scan/
+Traceback (most recent call last):
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/venv/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/views.py", line 143, in sensitive_scan
+    if pattern_info['category'] in selected_categories:
+       ~~~~~~~~~~~~^^^^^^^^^^^^
+TypeError: string indices must be integers, not 'str'
+ERROR 2025-06-15 21:10:01,910 basehttp 1598 128152849393344 "POST /regex/sensitive-scan/ HTTP/1.1" 500 70733
+INFO 2025-06-15 21:10:26,360 basehttp 1598 128152857786048 "GET / HTTP/1.1" 200 36792
+INFO 2025-06-15 21:10:28,717 basehttp 1598 128152857786048 "GET /malware/scan/ HTTP/1.1" 200 26211
+WARNING 2025-06-15 21:10:48,848 log 1598 128152857786048 Bad Request: /malware/api/scan/
+WARNING 2025-06-15 21:10:48,850 basehttp 1598 128152857786048 "POST /malware/api/scan/ HTTP/1.1" 400 40
+INFO 2025-06-15 21:19:28,140 autoreload 1598 128153049165952 /mnt/c/Users/Melek/Downloads/Data-Security-Analyzer-main/regex/urls.py changed, reloading.
