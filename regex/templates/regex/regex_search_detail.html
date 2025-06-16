@@ -1,7 +1,7 @@
 {% extends 'list/base.html' %}
 {% load static %}
 
-{% block title %}Regex Arama Detayı{% endblock %}
+{% block title %}Regex Detay - {{ file_path }}{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -14,165 +14,127 @@
         </ol>
     </nav>
 
-    <div class="card">
+    <div class="card mb-4">
         <div class="card-header">
-            <h5 class="card-title mb-0">{{ file_path }}</h5>
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-file-earmark"></i> Dosya Detayları
+                    </h5>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="btn-group">
+                        <a href="{% url 'regex:view_file' file_path %}" class="btn btn-info" title="Dosyayı Görüntüle">
+                            <i class="bi bi-eye"></i> Görüntüle
+                        </a>
+                        <a href="{% url 'regex:edit_file' file_path %}" class="btn btn-warning" title="Dosyayı Düzenle">
+                            <i class="bi bi-pencil"></i> Düzenle
+                        </a>
+                        <button type="button" class="btn btn-danger" onclick="quarantineFile('{{ file_path }}')" title="Karantinaya Al">
+                            <i class="bi bi-shield-lock"></i> Karantina
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6 class="mb-3">Dosya Bilgileri</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <th style="width: 150px;">Dosya Yolu:</th>
+                            <td>{{ file_path }}</td>
+                        </tr>
+                        <tr>
+                            <th>Dosya Türü:</th>
+                            <td>{{ file_type|upper }}</td>
+                        </tr>
+                        <tr>
+                            <th>Dosya Boyutu:</th>
+                            <td>{{ file_size|filesizeformat }}</td>
+                        </tr>
+                        <tr>
+                            <th>Eşleşme Sayısı:</th>
+                            <td><span class="badge bg-primary">{{ matches_count }}</span></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="mb-3">Regex Pattern</h6>
+                    <div class="alert alert-info">
+                        <code>{{ pattern }}</code>
+                    </div>
+                </div>
+            </div>
+
+            {% if matches %}
+            <h6 class="mb-3">Eşleşmeler</h6>
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Pattern</th>
+                            <th style="width: 80px;">Satır</th>
                             <th>Eşleşme</th>
-                            <th>Satır</th>
-                            <th>Pozisyon</th>
-                            <th>İşlemler</th>
+                            <th>Bağlam</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for match in matches %}
                         <tr>
-                            <td>{{ match.pattern }}</td>
-                            <td>{{ match.match }}</td>
-                            <td>{{ match.line }}</td>
-                            <td>{{ match.position }}</td>
                             <td>
-                                <button class="btn btn-sm btn-warning edit-file" data-file="{{ file_path }}">
-                                    <i class="bi bi-pencil"></i> Düzenle
-                                </button>
-                                <button class="btn btn-sm btn-danger quarantine-file" data-file="{{ file_path }}">
-                                    <i class="bi bi-shield-lock"></i> Karantina
-                                </button>
+                                <span class="badge bg-secondary">{{ match.line }}</span>
+                            </td>
+                            <td>
+                                <code>{{ match.match }}</code>
+                            </td>
+                            <td>
+                                <pre class="mb-0"><code>{{ match.context }}</code></pre>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
-
-    <div class="card mt-4">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Dosya İçeriği</h5>
-        </div>
-        <div class="card-body">
-            <pre class="file-content">{{ content }}</pre>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> Bu dosyada eşleşme bulunamadı.
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Dosya Düzenleme Modal -->
-<div class="modal fade" id="editFileModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Dosya Düzenle</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="editFileForm">
-                    <input type="hidden" id="editFilePath" name="file_path">
-                    <div class="form-group">
-                        <label for="fileContent">Dosya İçeriği</label>
-                        <textarea class="form-control" id="fileContent" name="content" rows="20"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">İptal</button>
-                <button type="button" class="btn btn-primary" id="saveFile">Kaydet</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Dosya düzenleme işlemleri
-    const editFileModal = document.getElementById('editFileModal');
-    const editFilePath = document.getElementById('editFilePath');
-    const fileContent = document.getElementById('fileContent');
-    const saveFile = document.getElementById('saveFile');
-
-    document.querySelectorAll('.edit-file').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const file = this.dataset.file;
-            editFilePath.value = file;
-            
-            // Dosya içeriğini al
-            fetch(`/regex/edit_file/${encodeURIComponent(file)}`)
-                .then(response => response.json())
-                .then(data => {
-                    fileContent.value = data.content;
-                    $(editFileModal).modal('show');
-                })
-                .catch(error => {
-                    console.error('Dosya içeriği alınamadı:', error);
-                    alert('Dosya içeriği alınamadı.');
-                });
-        });
-    });
-
-    saveFile.addEventListener('click', function() {
-        const form = document.getElementById('editFileForm');
-        const formData = new FormData(form);
-
-        fetch('/regex/edit_file/', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                $(editFileModal).modal('hide');
-                location.reload();
-            } else {
-                alert(data.error || 'Dosya kaydedilemedi.');
-            }
-        })
-        .catch(error => {
-            console.error('Dosya kaydedilemedi:', error);
-            alert('Dosya kaydedilemedi.');
-        });
-    });
-
-    // Karantina işlemleri
-    document.querySelectorAll('.quarantine-file').forEach(function(button) {
-        button.addEventListener('click', function() {
-            if (confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
-                const file = this.dataset.file;
-                
-                fetch('/regex/quarantine_file/', {
-                    method: 'POST',
-                    body: JSON.stringify({ file: file }),
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert(data.error || 'Dosya karantinaya alınamadı.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Dosya karantinaya alınamadı:', error);
-                    alert('Dosya karantinaya alınamadı.');
-                });
-            }
-        });
-    });
-});
+function quarantineFile(filePath) {
+    if (confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
+        window.location.href = `/regex/quarantine/${encodeURIComponent(filePath)}/`;
+    }
+}
 </script>
+
+<style>
+.table td {
+    vertical-align: middle;
+}
+.btn-group {
+    gap: 0.25rem;
+}
+.badge {
+    font-size: 0.9em;
+}
+pre {
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    margin: 0;
+    white-space: pre-wrap;
+}
+code {
+    color: #d63384;
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+}
+</style>
 {% endblock %}

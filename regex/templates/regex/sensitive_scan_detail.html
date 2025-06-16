@@ -1,7 +1,7 @@
 {% extends 'list/base.html' %}
 {% load static %}
 
-{% block title %}Hassas Veri Tarama Detayları{% endblock %}
+{% block title %}Hassas Veri Taraması Detayları{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -62,57 +62,88 @@
         right: 20px;
         z-index: 1000;
     }
+    .match-item {
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    .match-header {
+        margin-bottom: 10px;
+    }
+    .match-content {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+    }
+    .match-details {
+        margin-top: 10px;
+    }
+    pre {
+        margin: 0;
+        white-space: pre-wrap;
+    }
+    code {
+        color: #e83e8c;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
-    {% csrf_token %}
-    <div class="back-button">
-        <a href="{% url 'regex:sensitive_scan' %}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Geri Dön
-        </a>
-    </div>
-
     <h2 class="mb-4">
-        <i class="bi bi-file-text"></i> Dosya Detayları: {{ file_path }}
+        <i class="bi bi-file-earmark-text"></i> Dosya Detayları
     </h2>
 
     {% if error_message %}
-    <div class="alert alert-danger">{{ error_message }}</div>
+    <div class="alert alert-danger">
+        {{ error_message }}
+    </div>
     {% endif %}
 
-    <div class="detail-container">
-        {% if matches %}
-            {% for category, subcategories in matches.items %}
-            <div class="category-section">
-                <div class="category-header">
-                    <h4>{{ category|title }}</h4>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Dosya Bilgileri</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Dosya Yolu:</strong> {{ file_path }}</p>
+            <button class="btn btn-danger" onclick="quarantineFile()">
+                <i class="bi bi-shield-lock"></i> Dosyayı Karantinaya Al
+            </button>
+        </div>
+    </div>
+
+    {% if matches %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Bulunan Eşleşmeler</h5>
+        </div>
+        <div class="card-body">
+            {% for match in matches %}
+            <div class="match-item mb-4">
+                <div class="match-header">
+                    <h6>
+                        <span class="badge bg-primary">{{ match.category }}</span>
+                        <span class="badge bg-secondary">{{ match.subcategory }}</span>
+                        <small class="text-muted">Satır {{ match.line }}</small>
+                    </h6>
                 </div>
-                {% for subcategory, match_list in subcategories.items %}
-                <div class="subcategory-section">
-                    <h5>{{ subcategory }}</h5>
-                    <ul class="match-list">
-                        {% for match in match_list %}
-                        <li class="match-item">{{ match }}</li>
-                        {% endfor %}
-                    </ul>
+                <div class="match-content">
+                    <pre class="bg-light p-3 rounded"><code>{{ match.context }}</code></pre>
+                    <div class="match-details">
+                        <p><strong>Eşleşme:</strong> <code>{{ match.match }}</code></p>
+                        <p><strong>Desen:</strong> <code>{{ match.pattern }}</code></p>
+                    </div>
                 </div>
-                {% endfor %}
             </div>
             {% endfor %}
-
-            <div class="action-buttons">
-                <button id="quarantineButton" class="btn quarantine-button">
-                    <i class="bi bi-shield-lock"></i> Dosyayı Karantinaya Al
-                </button>
-            </div>
-        {% else %}
-            <div class="alert alert-info">
-                Bu dosyada hassas veri bulunamadı.
-            </div>
-        {% endif %}
+        </div>
     </div>
+    {% else %}
+    <div class="alert alert-info">
+        Bu dosyada hassas veri eşleşmesi bulunamadı.
+    </div>
+    {% endif %}
 </div>
 
 <div class="toast-container">
@@ -128,82 +159,43 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const quarantineButton = document.getElementById('quarantineButton');
-    const toast = new bootstrap.Toast(document.getElementById('quarantineToast'));
-    const toastBody = document.querySelector('.toast-body');
-    let isProcessing = false;
+    async function quarantineFile() {
+        if (!confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
+            return;
+        }
 
-    if (quarantineButton) {
-        // Butona tıklama olayını bir kez tanımla
-        const handleQuarantine = async function(e) {
-            e.preventDefault();
-            e.stopPropagation(); // Olayın yayılmasını engelle
+        try {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             
-            // Eğer işlem devam ediyorsa veya buton devre dışıysa, işlemi engelle
-            if (isProcessing || quarantineButton.disabled) {
-                console.log('İşlem devam ediyor veya buton devre dışı');
-                return;
+            // Form verisi oluştur
+            const formData = new FormData();
+            formData.append('file_path', '{{ file_path|escapejs }}');
+            formData.append('threat_type', 'Sensitive Data');
+            formData.append('threat_level', 'High');
+            formData.append('detected_pattern', '{{ matches|first|first|escapejs }}');
+
+            console.log('Gönderilen veri:', Object.fromEntries(formData));
+
+            const response = await fetch('{{ quarantine_url|safe }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Dosya başarıyla karantinaya alındı.');
+                window.location.href = '{% url "regex:sensitive_scan" %}';
+            } else {
+                alert('Hata: ' + data.error);
             }
-
-            if (!confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
-                return;
-            }
-
-            try {
-                // İşlem başlamadan önce butonu devre dışı bırak
-                isProcessing = true;
-                quarantineButton.disabled = true;
-                quarantineButton.innerHTML = '<i class="bi bi-hourglass-split"></i> İşleniyor...';
-
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                
-                // Form verisi oluştur
-                const formData = new FormData();
-                formData.append('file_path', '{{ file_path|escapejs }}');
-                formData.append('threat_type', 'Sensitive Data');
-                formData.append('threat_level', 'High');
-                formData.append('detected_pattern', '{{ matches|first|first|escapejs }}');
-
-                console.log('Gönderilen veri:', Object.fromEntries(formData));
-
-                const response = await fetch('{% url "regex:quarantine_file" %}', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    toastBody.textContent = data.message;
-                    toastBody.className = 'toast-body text-success';
-                    quarantineButton.innerHTML = '<i class="bi bi-shield-check"></i> Karantinaya Alındı';
-                } else {
-                    toastBody.textContent = data.error;
-                    toastBody.className = 'toast-body text-danger';
-                    quarantineButton.disabled = false;
-                    quarantineButton.innerHTML = '<i class="bi bi-shield-lock"></i> Dosyayı Karantinaya Al';
-                }
-
-                toast.show();
-            } catch (error) {
-                console.error('Karantina hatası:', error);
-                toastBody.textContent = 'Karantina işlemi sırasında bir hata oluştu: ' + error.message;
-                toastBody.className = 'toast-body text-danger';
-                toast.show();
-                quarantineButton.disabled = false;
-                quarantineButton.innerHTML = '<i class="bi bi-shield-lock"></i> Dosyayı Karantinaya Al';
-            } finally {
-                isProcessing = false;
-            }
-        };
-
-        // Butona tıklama olayını bir kez ekle
-        quarantineButton.addEventListener('click', handleQuarantine, { once: false });
+        } catch (error) {
+            console.error('Karantina hatası:', error);
+            alert('Dosya karantinaya alınırken bir hata oluştu.');
+        }
     }
-});
 </script>
 {% endblock %} 

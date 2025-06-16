@@ -2,183 +2,209 @@ import re
 import os
 from django.conf import settings
 from typing import Dict, List, Pattern, Tuple, Optional, Union
+from dataclasses import dataclass
+from collections import defaultdict
 
 # Ana kategoriler ve alt kategoriler
 CATEGORIES = {
-    'personalInfo': {
-        'name': 'Kişisel Bilgiler',
-        'description': 'TC Kimlik, telefon, e-posta, adres gibi kişisel bilgiler',
+    'personal': {
+        'name': 'Kişisel Veriler',
+        'description': 'Kişisel bilgileri içeren veriler',
         'subcategories': {
-            'tcKimlik': {
+            'tc_kimlik': {
                 'name': 'TC Kimlik Numarası',
-                'description': '11 haneli, 1 ile başlayan TC Kimlik Numarası',
-                'pattern': r'^[1-9][0-9]{10}$'
-            },
-            'phone': {
-                'name': 'Telefon Numarası',
-                'description': 'Türkiye telefon numaraları (mobil ve sabit hat)',
-                'pattern': r'^(\+90|0)?[ ]?([0-9]{3})[ ]?([0-9]{3})[ ]?([0-9]{2})[ ]?([0-9]{2})$'
+                'description': '11 haneli TC kimlik numarası',
+                'patterns': [
+                    r'\b[1-9][0-9]{10}\b'
+                ]
             },
             'email': {
                 'name': 'E-posta Adresi',
                 'description': 'Geçerli e-posta adresleri',
-                'pattern': r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+                'patterns': [
+                    r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+                ]
+            },
+            'phone': {
+                'name': 'Telefon Numarası',
+                'description': 'Türkiye telefon numaraları',
+                'patterns': [
+                    r'\b(?:0|90|\+90)?[ ]?(?:5[0-9]{2}|[1-4][0-9]{2})[ ]?[0-9]{3}[ ]?[0-9]{2}[ ]?[0-9]{2}\b'
+                ]
             },
             'address': {
-                'name': 'Adres',
-                'description': 'Türkiye adres formatı',
-                'pattern': r'^[A-Za-zğüşıöçĞÜŞİÖÇ\s]+(?:Mahallesi|Sokak|Caddesi|Bulvarı|No\.?\s*\d+)[,\s]+(?:Daire\s*\d+)?[,\s]+(?:[A-Za-zğüşıöçĞÜŞİÖÇ\s]+(?:İlçesi|İli))?$'
-            },
-            'birthDate': {
-                'name': 'Doğum Tarihi',
-                'description': 'GG/AA/YYYY formatında doğum tarihi',
-                'pattern': r'^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/(19|20)\d{2}$'
+                'name': 'Adres Bilgisi',
+                'description': 'Türkiye adres bilgileri',
+                'patterns': [
+                    r'\b(?:Mahalle|Sokak|Cadde|Bulvar|Avenue|Street|Road|Lane|Boulevard)[\s\w]+(?:No|No:|Numara|Numara:)?[\s\d]+(?:Kat|Daire|Blok|Apt|Apartment)?[\s\d]*\b',
+                    r'\b(?:İl|İlçe|Semt|Mahalle)[\s\w]+(?:No|No:|Numara|Numara:)?[\s\d]+(?:Kat|Daire|Blok|Apt|Apartment)?[\s\d]*\b'
+                ]
             }
         }
     },
-    'financialData': {
-        'name': 'Finansal Bilgiler',
-        'description': 'Kredi kartı, IBAN, hesap numarası gibi finansal bilgiler',
+    'financial': {
+        'name': 'Finansal Veriler',
+        'description': 'Finansal bilgileri içeren veriler',
         'subcategories': {
-            'creditCard': {
+            'credit_card': {
                 'name': 'Kredi Kartı Numarası',
-                'description': 'Visa, MasterCard, Amex ve Discover kartları',
-                'pattern': r'^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12})$'
-            },
-            'cvv': {
-                'name': 'CVV Kodu',
-                'description': '3 veya 4 haneli CVV kodu',
-                'pattern': r'^[0-9]{3,4}$'
-            },
-            'expiryDate': {
-                'name': 'Son Kullanma Tarihi',
-                'description': 'AA/YY formatında son kullanma tarihi',
-                'pattern': r'^(0[1-9]|1[0-2])/([0-9]{2})$'
+                'description': 'Kredi kartı numaraları',
+                'patterns': [
+                    r'\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|6(?:011|5[0-9]{2})[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\d{3})\d{11})\b'
+                ]
             },
             'iban': {
-                'name': 'IBAN',
-                'description': 'Türkiye IBAN formatı',
-                'pattern': r'^TR[0-9]{2}[ ]?([0-9]{4}[ ]?){5}[0-9]{2}$'
+                'name': 'IBAN Numarası',
+                'description': 'Türkiye IBAN numaraları',
+                'patterns': [
+                    r'\bTR[0-9]{2}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{2}\b'
+                ]
             },
-            'swift': {
-                'name': 'SWIFT/BIC Kodu',
-                'description': '8 veya 11 karakterli SWIFT/BIC kodu',
-                'pattern': r'^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$'
-            },
-            'accountNumber': {
+            'bank_account': {
                 'name': 'Banka Hesap Numarası',
-                'description': 'Türkiye banka hesap numarası',
-                'pattern': r'^[0-9]{10,26}$'
+                'description': 'Banka hesap numaraları',
+                'patterns': [
+                    r'\b[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{4}\b'
+                ]
             }
         }
     },
-    'healthData': {
-        'name': 'Sağlık Bilgileri',
-        'description': 'SGK numarası, sağlık raporları gibi sağlık bilgileri',
-        'subcategories': {
-            'sgkNumber': {
-                'name': 'SGK Numarası',
-                'description': '10 haneli SGK numarası',
-                'pattern': r'^[0-9]{10}$'
-            }
-        }
-    },
-    'corporateData': {
-        'name': 'Kurumsal Bilgiler',
-        'description': 'Vergi numarası, şirket kayıt numarası gibi kurumsal bilgiler',
-        'subcategories': {
-            'taxNumber': {
-                'name': 'Vergi Numarası',
-                'description': '10 haneli vergi numarası',
-                'pattern': r'^[0-9]{10}$'
-            },
-            'companyRegistry': {
-                'name': 'Şirket Kayıt Numarası',
-                'description': '10 haneli şirket kayıt numarası',
-                'pattern': r'^[0-9]{10}$'
-            }
-        }
-    },
-    'locationData': {
-        'name': 'Konum Bilgileri',
-        'description': 'Adres, GPS koordinatları gibi konum bilgileri',
-        'subcategories': {
-            'address': {
-                'name': 'Adres',
-                'description': 'Türkiye adres formatı',
-                'pattern': r'^[A-Za-zğüşıöçĞÜŞİÖÇ\s]+(?:Mahallesi|Sokak|Caddesi|Bulvarı|No\.?\s*\d+)[,\s]+(?:Daire\s*\d+)?[,\s]+(?:[A-Za-zğüşıöçĞÜŞİÖÇ\s]+(?:İlçesi|İli))?$'
-            },
-            'gpsCoordinates': {
-                'name': 'GPS Koordinatları',
-                'description': 'Enlem ve boylam koordinatları',
-                'pattern': r'^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$'
-            }
-        }
-    },
-    'authData': {
-        'name': 'Kimlik Doğrulama Bilgileri',
-        'description': 'Şifre, API anahtarı, SSH anahtarı gibi kimlik doğrulama bilgileri',
+    'security': {
+        'name': 'Güvenlik Verileri',
+        'description': 'Güvenlik bilgilerini içeren veriler',
         'subcategories': {
             'password': {
                 'name': 'Şifre',
-                'description': 'En az 8 karakterli şifre',
-                'pattern': r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$'
+                'description': 'Şifre bilgileri',
+                'patterns': [
+                    r'\b(?:password|şifre|parola|sifre)[\s]*[:=][\s]*[\w@#$%^&*()_+\-=\[\]{};\'\\:"|,.<>\/?]{8,}\b'
+                ]
             },
-            'apiKey': {
+            'api_key': {
                 'name': 'API Anahtarı',
-                'description': 'AWS, Google ve diğer API anahtarları',
-                'pattern': r'^(?:AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z-_]{35}|[0-9a-f]{32}|[0-9a-f]{40})$'
+                'description': 'API anahtarları',
+                'patterns': [
+                    r'\b(?:api[_-]?key|api[_-]?token|apikey|apitoken)[\s]*[:=][\s]*[a-zA-Z0-9]{32,}\b'
+                ]
             },
-            'sshKey': {
+            'ssh_key': {
                 'name': 'SSH Anahtarı',
-                'description': 'SSH özel ve genel anahtarları',
-                'pattern': r'^-----BEGIN (?:RSA|DSA|EC|OPENSSH) PRIVATE KEY-----\n(?:[A-Za-z0-9+/]{4}\n)*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\n-----END (?:RSA|DSA|EC|OPENSSH) PRIVATE KEY-----$'
-            },
-            'sslCertificate': {
-                'name': 'SSL Sertifikası',
-                'description': 'SSL/TLS sertifikaları',
-                'pattern': r'^-----BEGIN CERTIFICATE-----\n(?:[A-Za-z0-9+/]{4}\n)*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?\n-----END CERTIFICATE-----$'
+                'description': 'SSH anahtarları',
+                'patterns': [
+                    r'-----BEGIN (?:RSA|DSA|EC|OPENSSH) PRIVATE KEY-----'
+                ]
             }
         }
     },
-    'systemSecurityData': {
-        'name': 'Sistem Güvenlik Bilgileri',
-        'description': 'IP adresi, MAC adresi, veritabanı bağlantı bilgileri',
+    'health': {
+        'name': 'Sağlık Verileri',
+        'description': 'Sağlık bilgilerini içeren veriler',
         'subcategories': {
-            'ipAddress': {
-                'name': 'IP Adresi',
-                'description': 'IPv4 ve IPv6 adresleri',
-                'pattern': r'^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])|(?:[0-9a-fA-F]{1,4}:){1,4}:(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$'
+            'health_insurance': {
+                'name': 'Sağlık Sigortası Numarası',
+                'description': 'Sağlık sigortası numaraları',
+                'patterns': [
+                    r'\b[0-9]{11}\b'
+                ]
             },
-            'macAddress': {
-                'name': 'MAC Adresi',
-                'description': 'MAC adresi formatı',
-                'pattern': r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
-            },
-            'databaseConnection': {
-                'name': 'Veritabanı Bağlantısı',
-                'description': 'Veritabanı bağlantı bilgileri',
-                'pattern': r'(?:jdbc|mysql|postgresql|mongodb|redis)://[a-zA-Z0-9._%+-]+:[0-9]+/[a-zA-Z0-9._%+-]+'
+            'medical_record': {
+                'name': 'Tıbbi Kayıt Numarası',
+                'description': 'Tıbbi kayıt numaraları',
+                'patterns': [
+                    r'\b(?:Hasta No|Hasta ID|Kayıt No)[\s]*[:=][\s]*[A-Z0-9]{6,}\b'
+                ]
             }
         }
     },
-    'identificationData': {
-        'name': 'Kimlik Bilgileri',
-        'description': 'Pasaport, ehliyet gibi kimlik bilgileri',
+    'corporate': {
+        'name': 'Kurumsal Veriler',
+        'description': 'Kurumsal bilgileri içeren veriler',
         'subcategories': {
-            'passport': {
-                'name': 'Pasaport Numarası',
-                'description': '8 karakterli pasaport numarası',
-                'pattern': r'^[A-Z][0-9]{7}$'
+            'tax_number': {
+                'name': 'Vergi Numarası',
+                'description': 'Vergi numaraları',
+                'patterns': [
+                    r'\b[0-9]{10}\b'
+                ]
             },
-            'driverLicense': {
-                'name': 'Ehliyet Numarası',
-                'description': '8 karakterli ehliyet numarası',
-                'pattern': r'^[A-Z][0-9]{7}$'
+            'company_registry': {
+                'name': 'Şirket Sicil Numarası',
+                'description': 'Şirket sicil numaraları',
+                'patterns': [
+                    r'\b[A-Z]{1}[0-9]{5}\b'
+                ]
+            },
+            'employee_id': {
+                'name': 'Çalışan Numarası',
+                'description': 'Çalışan numaraları',
+                'patterns': [
+                    r'\b(?:Çalışan No|Personel No|Employee ID)[\s]*[:=][\s]*[A-Z0-9]{6,}\b'
+                ]
             }
         }
     }
 }
+
+# Dosya türleri
+FILE_TYPES = {
+    'text': {
+        'name': 'Metin Dosyaları',
+        'extensions': ['txt', 'md', 'log', 'ini', 'conf', 'cfg', 'properties']
+    },
+    'office': {
+        'name': 'Ofis & Doküman',
+        'extensions': ['docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt', 'pdf']
+    },
+    'data': {
+        'name': 'Tablolar & Veri',
+        'extensions': ['csv', 'tsv', 'json', 'xml', 'yaml', 'yml']
+    },
+    'web': {
+        'name': 'Web Dosyaları',
+        'extensions': ['html', 'htm', 'css', 'js']
+    },
+    'archive': {
+        'name': 'Arşiv Dosyaları',
+        'extensions': ['zip', 'rar']
+    },
+    'image': {
+        'name': 'Görsel Dosyalar',
+        'extensions': ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff']
+    }
+}
+
+class RegexPatterns:
+    def __init__(self):
+        self.categories = CATEGORIES
+        self.file_types = FILE_TYPES
+
+    def get_patterns_by_category(self, category: str) -> List[str]:
+        """Belirli bir kategoriye ait desenleri döndürür."""
+        patterns = []
+        if category in self.categories:
+            for subcategory in self.categories[category]['subcategories'].values():
+                patterns.extend(subcategory['patterns'])
+        return patterns
+
+    def get_category_names(self) -> Dict:
+        """Kategori isimlerini döndürür."""
+        return {
+            category: {
+                'name': data['name'],
+                'description': data['description'],
+                'subcategories': {
+                    subcategory: {
+                        'name': subdata['name'],
+                        'description': subdata['description']
+                    }
+                    for subcategory, subdata in data['subcategories'].items()
+                }
+            }
+            for category, data in self.categories.items()
+        }
+
+# Singleton instance
+ALL_REGEX_PATTERNS_BACKEND = RegexPatterns()
 
 def get_all_patterns() -> List[str]:
     """Tüm regex desenlerini döndürür."""
@@ -200,85 +226,6 @@ def get_patterns_by_category(category: str, subcategories: Optional[List[str]] =
             for subcategory in CATEGORIES[category].get('subcategories', {}).values():
                 patterns.extend(subcategory.get('patterns', []))
     return patterns
-
-def get_category_names() -> Dict[str, Dict[str, Union[str, Dict[str, str]]]]:
-    """Kategori ve alt kategori isimlerini döndürür."""
-    category_names = {
-        'personal': {
-            'name': 'Kişisel Bilgiler',
-            'subcategories': {
-                'tc_kimlik': 'TC Kimlik Numarası',
-                'email': 'E-posta Adresi',
-                'phone': 'Cep Telefonu',
-                'phone_landline': 'Sabit Telefon',
-                'address': 'Adres',
-                'birth_date': 'Doğum Tarihi'
-            }
-        },
-        'financial': {
-            'name': 'Finansal Bilgiler',
-            'subcategories': {
-                'credit_card': 'Kredi Kartı',
-                'credit_card_cvv': 'CVV Kodu',
-                'credit_card_expiry': 'Son Kullanma Tarihi',
-                'iban': 'IBAN',
-                'swift_bic': 'SWIFT/BIC',
-                'account_number': 'Hesap Numarası'
-            }
-        },
-        'corporate': {
-            'name': 'Kurumsal Bilgiler',
-            'subcategories': {
-                'tax_number': 'Vergi Numarası',
-                'sgk_number': 'SGK Numarası',
-                'company_registry': 'Kurum Sicil No'
-            }
-        },
-        'security': {
-            'name': 'Güvenlik Bilgileri',
-            'subcategories': {
-                'password': 'Şifre',
-                'api_key': 'API Anahtarı',
-                'aws_key': 'AWS Anahtarı',
-                'google_api_key': 'Google API Anahtarı',
-                'ssh_key': 'SSH Anahtarı',
-                'ssl_cert': 'SSL Sertifikası'
-            }
-        },
-        'network': {
-            'name': 'Ağ Bilgileri',
-            'subcategories': {
-                'ipv4': 'IPv4 Adresi',
-                'ipv6': 'IPv6 Adresi',
-                'mac_address': 'MAC Adresi',
-                'database_connection': 'Veritabanı Bağlantısı'
-            }
-        },
-        'authentication': {
-            'name': 'Kimlik Doğrulama',
-            'subcategories': {
-                'jwt_token': 'JWT Token',
-                'oauth_token': 'OAuth Token',
-                'session_id': 'Oturum ID'
-            }
-        },
-        'location': {
-            'name': 'Konum Bilgileri',
-            'subcategories': {
-                'gps_coordinates': 'GPS Koordinatları',
-                'gps_coordinates_alt': 'GPS Koordinatları (Alt)'
-            }
-        },
-        'identification': {
-            'name': 'Kimlik Bilgileri',
-            'subcategories': {
-                'passport': 'Pasaport Numarası',
-                'drivers_license': 'Ehliyet Numarası',
-                'student_id': 'Öğrenci Numarası'
-            }
-        }
-    }
-    return category_names
 
 def validate_regex_pattern(pattern: str) -> bool:
     """Regex deseninin geçerli olup olmadığını kontrol eder."""
@@ -311,7 +258,7 @@ sensitive_patterns = {
     'Telefon': r'(?:\+90|0)?\s*?\(?5\d{2}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}',
     'E-posta': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
     'Kredi Kartı': r'\b(?:\d[ -]*?){13,16}\b',
-    'IBAN': r'TR\d{2}\s?(\d{4}\s?){5}\d{2}',
+    'IBAN': r'TR\d{2}\s?(\d{4}[ ]?){5}\d{2}',
     'Şifre': r'(?:password|şifre|parola)[\s]*[:=][\s]*[\w@#$%^&*()_+\-=\[\]{};\'\\|,.<>\/?]{8,}',
     'API Anahtarı': r'(?:api[_-]?key|api[_-]?token)[\s]*[:=][\s]*[a-zA-Z0-9]{32,}',
     'Gizli Anahtar': r'(?:secret[_-]?key|private[_-]?key)[\s]*[:=][\s]*["\']?[^"\']+["\']?',
@@ -337,191 +284,6 @@ sensitive_patterns = {
     'Hesap Numarası': r'\b[0-9]{10,26}\b',
     'SWIFT Kodu': r'[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?',
     'BIC Kodu': r'[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?'
-}
-
-# Centralized regex patterns in Python dictionary format (Comprehensive)
-ALL_REGEX_PATTERNS_BACKEND = {
-    'personal': [
-        {
-            'subcategory': 'tc_kimlik',
-            'pattern': r'\b[1-9][0-9]{10}\b',
-            'description': 'TC Kimlik Numarası (11 haneli, 1 ile başlayan)'
-        },
-        {
-            'subcategory': 'email',
-            'pattern': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
-            'description': 'E-posta Adresi (RFC standartlarına uygun)'
-        },
-        {
-            'subcategory': 'phone',
-            'pattern': r'\b(?:\+90|0)?\s*5[0-9]{2}\s*[0-9]{3}\s*[0-9]{2}\s*[0-9]{2}\b',
-            'description': 'Türkiye Cep Telefonu Numarası'
-        },
-        {
-            'subcategory': 'phone_landline',
-            'pattern': r'\b(?:\+90|0)?\s*[2-4][0-9]{2}\s*[0-9]{3}\s*[0-9]{2}\s*[0-9]{2}\b',
-            'description': 'Türkiye Sabit Telefon Numarası'
-        },
-        {
-            'subcategory': 'address',
-            'pattern': r'\b(?:Mahalle|Sokak|Cadde|Bulvar|Avenue|Street|Road)\s+[A-Za-zğüşıöçĞÜŞİÖÇ\s]+\s+(?:No|No:)\s*\d+\s*(?:Daire|Kat|Blok)?\s*[A-Za-z0-9]*\b',
-            'description': 'Adres Bilgisi (Mahalle, Sokak, No vb.)'
-        },
-        {
-            'subcategory': 'birth_date',
-            'pattern': r'\b(?:0[1-9]|[12][0-9]|3[01])[/.-](?:0[1-9]|1[0-2])[/.-](?:19|20)[0-9]{2}\b',
-            'description': 'Doğum Tarihi (GG/AA/YYYY formatında)'
-        }
-    ],
-    'financial': [
-        {
-            'subcategory': 'credit_card',
-            'pattern': r'\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12}|(?:2131|1800|35\d{3})\d{11})\b',
-            'description': 'Kredi Kartı Numarası (Visa, MasterCard, Amex, Discover)'
-        },
-        {
-            'subcategory': 'credit_card_cvv',
-            'pattern': r'\b[0-9]{3,4}\b',
-            'description': 'Kredi Kartı CVV Kodu'
-        },
-        {
-            'subcategory': 'credit_card_expiry',
-            'pattern': r'\b(?:0[1-9]|1[0-2])/(?:[0-9]{2})\b',
-            'description': 'Kredi Kartı Son Kullanma Tarihi'
-        },
-        {
-            'subcategory': 'iban',
-            'pattern': r'\bTR[0-9]{2}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{2}\b',
-            'description': 'Türkiye IBAN Numarası'
-        },
-        {
-            'subcategory': 'swift_bic',
-            'pattern': r'\b[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b',
-            'description': 'SWIFT/BIC Kodu'
-        },
-        {
-            'subcategory': 'account_number',
-            'pattern': r'\b[0-9]{10,26}\b',
-            'description': 'Banka Hesap Numarası'
-        }
-    ],
-    'corporate': [
-        {
-            'subcategory': 'tax_number',
-            'pattern': r'\b[0-9]{10}\b',
-            'description': 'Vergi Numarası (10 haneli)'
-        },
-        {
-            'subcategory': 'sgk_number',
-            'pattern': r'\b[1-9][0-9]{9}\b',
-            'description': 'SGK Numarası (10 haneli)'
-        },
-        {
-            'subcategory': 'company_registry',
-            'pattern': r'\b[0-9]{10}\b',
-            'description': 'Kurum Sicil Numarası'
-        }
-    ],
-    'security': [
-        {
-            'subcategory': 'password',
-            'pattern': r'\b(?:password|şifre|parola)[\s]*[:=][\s]*[\w@#$%^&*()_+\-=\[\]{};\'\\|,.<>\/?]{8,}\b',
-            'description': 'Şifre (8+ karakter)'
-        },
-        {
-            'subcategory': 'api_key',
-            'pattern': r'\b(?:api[_-]?key|api[_-]?token)[\s]*[:=][\s]*[a-zA-Z0-9]{32,}\b',
-            'description': 'API Anahtarı'
-        },
-        {
-            'subcategory': 'aws_key',
-            'pattern': r'\bAKIA[0-9A-Z]{16}\b',
-            'description': 'AWS Erişim Anahtarı'
-        },
-        {
-            'subcategory': 'google_api_key',
-            'pattern': r'\bAIza[0-9A-Za-z-_]{35}\b',
-            'description': 'Google API Anahtarı'
-        },
-        {
-            'subcategory': 'ssh_key',
-            'pattern': r'-----BEGIN (?:RSA|DSA|EC|OPENSSH) PRIVATE KEY-----',
-            'description': 'SSH Özel Anahtarı'
-        },
-        {
-            'subcategory': 'ssl_cert',
-            'pattern': r'-----BEGIN CERTIFICATE-----',
-            'description': 'SSL Sertifikası'
-        }
-    ],
-    'network': [
-        {
-            'subcategory': 'ipv4',
-            'pattern': r'\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b',
-            'description': 'IPv4 Adresi'
-        },
-        {
-            'subcategory': 'ipv6',
-            'pattern': r'\b(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?:(?::[0-9a-fA-F]{1,4}){1,6})|:(?:(?::[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(?::[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])|(?:[0-9a-fA-F]{1,4}:){1,4}:(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9]))\b',
-            'description': 'IPv6 Adresi'
-        },
-        {
-            'subcategory': 'mac_address',
-            'pattern': r'\b(?:[0-9A-Fa-f]{2}[:-]){5}(?:[0-9A-Fa-f]{2})\b',
-            'description': 'MAC Adresi'
-        },
-        {
-            'subcategory': 'database_connection',
-            'pattern': r'\b(?:mysql|postgresql|mongodb|redis)://[^:\s]+:[^@\s]+@[^:\s]+:\d+\b',
-            'description': 'Veritabanı Bağlantı Bilgisi'
-        }
-    ],
-    'authentication': [
-        {
-            'subcategory': 'jwt_token',
-            'pattern': r'\bey[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*\b',
-            'description': 'JWT Token'
-        },
-        {
-            'subcategory': 'oauth_token',
-            'pattern': r'\bya29\.[0-9A-Za-z\-_]+\b',
-            'description': 'OAuth Token'
-        },
-        {
-            'subcategory': 'session_id',
-            'pattern': r'\b(?:session[_-]?id|sid)[\s]*[:=][\s]*[A-Za-z0-9]{32,}\b',
-            'description': 'Oturum ID'
-        }
-    ],
-    'location': [
-        {
-            'subcategory': 'gps_coordinates',
-            'pattern': r'\b(?:[NS])\s*(\d{1,2}(?:\.\d+)?)\s*(?:[EW])\s*(\d{1,3}(?:\.\d+)?)\b',
-            'description': 'GPS Koordinatları (Derece formatında)'
-        },
-        {
-            'subcategory': 'gps_coordinates_alt',
-            'pattern': r'\b(?:[+-]?\d{1,2}(?:\.\d+)?)\s*,\s*(?:[+-]?\d{1,3}(?:\.\d+)?)\b',
-            'description': 'GPS Koordinatları (Alternatif format)'
-        }
-    ],
-    'identification': [
-        {
-            'subcategory': 'passport',
-            'pattern': r'\b[A-Z][0-9]{8}\b',
-            'description': 'Pasaport Numarası'
-        },
-        {
-            'subcategory': 'drivers_license',
-            'pattern': r'\b[A-Z][0-9]{8}\b',
-            'description': 'Ehliyet Numarası'
-        },
-        {
-            'subcategory': 'student_id',
-            'pattern': r'\b[0-9]{8,10}\b',
-            'description': 'Öğrenci Numarası'
-        }
-    ]
 }
 
 # Regex pattern cache
@@ -566,25 +328,32 @@ def validate_regex_pattern(pattern_str):
     except re.error as e:
         return False, f"Invalid regex pattern: {str(e)}"
 
-def get_context_lines(file_path, line_number, context=3):
-    """Get context lines around a specific line number from a file."""
+def get_context_lines(content, line_number, context=3):
+    """Get context lines around a specific line number from content string."""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
+        if isinstance(content, str):
+            lines = content.splitlines()
+        else:
+            # Backward compatibility - if file path is passed
+            with open(content, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                lines = [line.rstrip('\n') for line in lines]
             
         start_line = max(0, line_number - context - 1)
         end_line = min(len(lines), line_number + context)
         
         context_lines = []
         for i in range(start_line, end_line):
-            context_lines.append({
-                'line_number': i + 1,
-                'text': lines[i].rstrip('\n')
-            })
+            if i < len(lines):
+                context_lines.append({
+                    'line_number': i + 1,
+                    'text': lines[i],
+                    'is_match_line': i + 1 == line_number
+                })
             
         return context_lines
     except Exception as e:
-        return [{'line_number': line_number, 'text': f'Error reading context: {str(e)}'}]
+        return [{'line_number': line_number, 'text': f'Error reading context: {str(e)}', 'is_match_line': True}]
 
 def should_scan_file(file_path):
     """Determine if a file should be scanned based on its extension"""

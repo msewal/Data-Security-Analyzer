@@ -109,13 +109,10 @@
         background-color: #e3f2fd;
         color: #0d6efd;
     }
-    .file-type-description {
+    .file-type-label small {
         font-size: 0.8rem;
         color: #6c757d;
         margin-top: 2px;
-        display: none;
-    }
-    .file-type-label:hover + .file-type-description {
         display: block;
     }
     .toggle-icon {
@@ -161,10 +158,10 @@
                     <div class="category-container">
                         <div class="category-header" onclick="toggleSubcategories('{{ category }}')">
                             <div>
-                                <div class="form-check">
+                            <div class="form-check">
                                     <input class="form-check-input category-checkbox" type="checkbox" name="categories" value="{{ category }}" id="{{ category }}">
                                     <label class="form-check-label category-title" for="{{ category }}">{{ data.name }}</label>
-                                </div>
+                            </div>
                                 <div class="category-description">{{ data.description }}</div>
                             </div>
                             <i class="bi bi-chevron-down toggle-icon" id="{{ category }}-icon"></i>
@@ -172,10 +169,10 @@
                         <div class="subcategory-container" id="{{ category }}-subcategories">
                             {% for subcategory, subdata in data.subcategories.items %}
                             <div class="subcategory-item">
-                                <div class="form-check">
+                            <div class="form-check">
                                     <input class="form-check-input subcategory-checkbox" type="checkbox" name="subcategories[{{ category }}]" value="{{ subcategory }}" id="{{ category }}_{{ subcategory }}">
                                     <label class="form-check-label" for="{{ category }}_{{ subcategory }}">{{ subdata.name }}</label>
-                                </div>
+                            </div>
                                 <div class="subcategory-description">{{ subdata.description }}</div>
                             </div>
                             {% endfor %}
@@ -198,56 +195,58 @@
                         </button>
                     </div>
                     <div class="file-types-container">
-                        {% for group_name, extensions in file_types.items %}
+                        {% for group_name, group_data in file_types.items %}
                         <div class="file-type-group">
                             <h6>
                                 {% if group_name == 'text' %}
-                                <i class="bi bi-file-text"></i> Metin Dosyaları
+                                <i class="bi bi-file-text"></i> {{ group_data.name }}
                                 {% elif group_name == 'office' %}
-                                <i class="bi bi-file-earmark-text"></i> Ofis & Doküman
+                                <i class="bi bi-file-earmark-text"></i> {{ group_data.name }}
                                 {% elif group_name == 'data' %}
-                                <i class="bi bi-table"></i> Tablolar & Veri
+                                <i class="bi bi-table"></i> {{ group_data.name }}
                                 {% elif group_name == 'web' %}
-                                <i class="bi bi-globe"></i> Web Dosyaları
+                                <i class="bi bi-globe"></i> {{ group_data.name }}
                                 {% elif group_name == 'archive' %}
-                                <i class="bi bi-file-earmark-zip"></i> Arşiv Dosyaları
+                                <i class="bi bi-file-earmark-zip"></i> {{ group_data.name }}
                                 {% elif group_name == 'image' %}
-                                <i class="bi bi-file-earmark-image"></i> Görsel Dosyalar
+                                <i class="bi bi-file-earmark-image"></i> {{ group_data.name }}
                                 {% endif %}
                             </h6>
-                            {% for ext in extensions %}
+                            {% for ext in group_data.extensions %}
                             <div class="form-check">
                                 <input class="form-check-input file-type-checkbox" type="checkbox" name="file_types" value="{{ ext }}" id="{{ ext }}" {% if ext in 'txt,docx,pdf,csv,json' %}checked{% endif %}>
-                                <label class="form-check-label file-type-label" for="{{ ext }}">.{{ ext }}</label>
-                                <div class="file-type-description">
-                                    {% if ext == 'txt' %}
-                                    Düz metin dosyaları
-                                    {% elif ext == 'md' %}
-                                    Markdown belgeleri
-                                    {% elif ext == 'log' %}
-                                    Log dosyaları
-                                    {% elif ext == 'docx' %}
-                                    Word belgeleri
-                                    {% elif ext == 'pdf' %}
-                                    PDF belgeleri
-                                    {% elif ext == 'xlsx' %}
-                                    Excel tabloları
-                                    {% elif ext == 'csv' %}
-                                    Virgülle ayrılmış değerler
-                                    {% elif ext == 'json' %}
-                                    JSON veri dosyaları
-                                    {% elif ext == 'xml' %}
-                                    XML belgeleri
-                                    {% elif ext == 'zip' %}
-                                    ZIP arşivleri
-                                    {% elif ext == 'rar' %}
-                                    RAR arşivleri
-                                    {% elif ext == 'png' %}
-                                    PNG görselleri
-                                    {% elif ext == 'jpg' %}
-                                    JPEG görselleri
-                                    {% endif %}
-                                </div>
+                                <label class="form-check-label file-type-label" for="{{ ext }}">
+                                    .{{ ext }}
+                                    <small class="text-muted d-block">
+                                        {% if ext == 'txt' %}
+                                        Düz metin dosyaları
+                                        {% elif ext == 'md' %}
+                                        Markdown belgeleri
+                                        {% elif ext == 'log' %}
+                                        Log dosyaları
+                                        {% elif ext == 'docx' %}
+                                        Word belgeleri
+                                        {% elif ext == 'pdf' %}
+                                        PDF belgeleri
+                                        {% elif ext == 'xlsx' %}
+                                        Excel tabloları
+                                        {% elif ext == 'csv' %}
+                                        Virgülle ayrılmış değerler
+                                        {% elif ext == 'json' %}
+                                        JSON veri dosyaları
+                                        {% elif ext == 'xml' %}
+                                        XML belgeleri
+                                        {% elif ext == 'zip' %}
+                                        ZIP arşivleri
+                                        {% elif ext == 'rar' %}
+                                        RAR arşivleri
+                                        {% elif ext == 'png' %}
+                                        PNG görselleri
+                                        {% elif ext == 'jpg' %}
+                                        JPEG görselleri
+                                        {% endif %}
+                                    </small>
+                                </label>
                             </div>
                             {% endfor %}
                         </div>
@@ -419,14 +418,12 @@
     document.querySelectorAll('.file-type-label').forEach(label => {
         label.addEventListener('mouseenter', function() {
             this.style.backgroundColor = '#f8f9fa';
-            this.nextElementSibling.style.display = 'block';
         });
         
         label.addEventListener('mouseleave', function() {
             if (!this.previousElementSibling.checked) {
                 this.style.backgroundColor = '';
             }
-            this.nextElementSibling.style.display = 'none';
         });
     });
 

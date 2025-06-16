@@ -24,14 +24,13 @@ from django.contrib import messages
 from datetime import datetime
 from typing import Dict, List, Tuple
 from .patterns import (
-    get_patterns_by_category,
+    ALL_REGEX_PATTERNS_BACKEND,
     get_all_patterns,
     validate_regex_pattern,
-    compile_patterns,
-    get_category_names,
-    CATEGORIES,
-    ALL_REGEX_PATTERNS_BACKEND
+    get_context_lines,
+    should_scan_file
 )
+from collections import defaultdict
 
 # Office ve PDF işleme için gerekli importlar
 try:
@@ -82,14 +81,33 @@ def get_file_content(file_path):
             try:
                 import PyPDF2
                 with open(file_path, 'rb') as f:
-                    pdf = PyPDF2.PdfReader(f)
-                    text = ''
-                    for page in pdf.pages:
-                        text += page.extract_text() + '\n'
-                    return text
+                    try:
+                        pdf = PyPDF2.PdfReader(f)
+                        if len(pdf.pages) == 0:
+                            logger.warning(f"PDF dosyası boş: {file_path}")
+                            return "PDF dosyası boş veya okunamıyor."
+                            
+                        text = ''
+                        for page_num, page in enumerate(pdf.pages, 1):
+                            try:
+                                page_text = page.extract_text()
+                                if page_text:
+                                    text += f"\n--- Sayfa {page_num} ---\n{page_text}\n"
+                                else:
+                                    text += f"\n--- Sayfa {page_num} (Metin içermiyor) ---\n"
+                            except Exception as page_error:
+                                logger.error(f"PDF sayfa {page_num} okuma hatası: {str(page_error)}")
+                                text += f"\n--- Sayfa {page_num} (Okunamadı) ---\n"
+                                
+                        if not text.strip():
+                            return "PDF dosyasından metin çıkarılamadı."
+                        return text
+                    except PyPDF2.errors.PdfReadError as pdf_error:
+                        logger.error(f"PDF okuma hatası: {str(pdf_error)}")
+                        return f"PDF dosyası okunamıyor: {str(pdf_error)}"
             except Exception as e:
-                logger.error(f"Error reading PDF {file_path}: {str(e)}")
-                return None
+                logger.error(f"PDF dosyası açma hatası {file_path}: {str(e)}")
+                return f"PDF dosyası açılamıyor: {str(e)}"
         
         # Word dosyaları
         elif file_type in ['docx', 'doc']:
@@ -213,28 +231,43 @@ def get_file_content(file_path):
         return None
 
 def get_file_type(file_path):
-    """Dosya türünü belirler."""
+    """Dosya türünü belirler - Ubuntu subsystem uyumlu."""
     try:
         # Önce uzantıya bak
         ext = os.path.splitext(file_path)[1].lower().lstrip('.')
         
-        # MIME türünü kontrol et
+        # MIME türünü kontrol et (Ubuntu subsystem için güvenli)
+        mime = None
         try:
+            # Ubuntu subsystem'de magic kütüphanesi farklı çalışabilir
             import magic
-            mime = magic.from_file(file_path, mime=True)
+            if hasattr(magic, 'from_file'):
+                mime = magic.from_file(file_path, mime=True)
+            else:
+                # Alternative magic usage
+                m = magic.Magic(mime=True)
+                mime = m.from_file(file_path)
         except Exception as e:
             logger.warning(f"Error getting MIME type for {file_path}: {str(e)}")
-            mime = None
+            # Fallback: mimetypes modülünü kullan
+            import mimetypes
+            mime, _ = mimetypes.guess_type(file_path)
         
         # Uzantı ve MIME türüne göre dosya türünü belirle
-        if ext in ['txt', 'md', 'log', 'ini', 'conf', 'cfg', 'properties']:
+        if ext in ['txt', 'md', 'log', 'ini', 'conf', 'cfg', 'properties', 'py', 'sh', 'bash']:
             return 'txt'
-        elif ext in ['docx', 'doc']:
+        elif ext in ['docx']:
             return 'docx'
-        elif ext in ['xlsx', 'xls']:
+        elif ext in ['doc']:
+            return 'docx'  # Doc dosyalarını da docx olarak işle
+        elif ext in ['xlsx']:
             return 'xlsx'
-        elif ext in ['pptx', 'ppt']:
+        elif ext in ['xls']:
+            return 'xlsx'  # Xls dosyalarını da xlsx olarak işle
+        elif ext in ['pptx']:
             return 'pptx'
+        elif ext in ['ppt']:
+            return 'pptx'  # Ppt dosyalarını da pptx olarak işle
         elif ext == 'pdf':
             return 'pdf'
         elif ext in ['csv', 'tsv']:
@@ -243,9 +276,9 @@ def get_file_type(file_path):
             return ext
         elif ext in ['html', 'htm', 'css', 'js']:
             return ext
-        elif ext in ['zip', 'rar']:
+        elif ext in ['zip', 'rar', '7z', 'tar', 'gz']:
             return ext
-        elif ext in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff']:
+        elif ext in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp']:
             return ext
         else:
             # MIME türüne göre kontrol et
@@ -265,16 +298,21 @@ def get_file_type(file_path):
                     return 'pptx'
                 elif mime == 'application/json':
                     return 'json'
-                elif mime == 'application/xml':
+                elif mime in ['application/xml', 'text/xml']:
                     return 'xml'
-                elif mime == 'application/zip':
+                elif mime == 'text/csv':
+                    return 'csv'
+                elif mime in ['application/zip', 'application/x-zip-compressed']:
                     return 'zip'
                 elif mime.startswith('image/'):
-                    return ext
-            return None
+                    return ext or 'image'
+            
+            # Varsayılan olarak txt döndür
+            return 'txt'
+            
     except Exception as e:
         logger.error(f"Error determining file type for {file_path}: {str(e)}")
-        return None
+        return 'txt'  # Hata durumunda varsayılan
 
 def regex_search(request):
     """Regex araması yapar."""
@@ -302,13 +340,13 @@ def regex_search(request):
         patterns = []
         if selected_categories:
             for category in selected_categories:
-                patterns.extend(get_patterns_by_category(category))
+                patterns.extend(ALL_REGEX_PATTERNS_BACKEND.get(category, []))
                 
         if selected_subcategories:
             for subcategory in selected_subcategories:
-                for category in CATEGORIES.values():
-                    if subcategory in category.get('subcategories', {}):
-                        patterns.extend(category['subcategories'][subcategory])
+                for category in ALL_REGEX_PATTERNS_BACKEND.items():
+                    if subcategory in category[1]:
+                        patterns.extend(category[1][subcategory])
                         
         if not patterns:
             messages.error(request, 'Geçerli regex deseni bulunamadı.')
@@ -360,22 +398,16 @@ def regex_search(request):
                         'matches': file_matches
                     })
                     
-        # Sonuçları oturuma kaydet
+        # Sonuçları ve kullanılan pattern'leri oturuma kaydet
         request.session['regex_results'] = results
+        request.session['regex_patterns'] = [p.pattern for p in compiled_patterns]
         
         return redirect('regex:regex_search_results')
         
     # GET isteği için
     return render(request, 'regex/regex_search.html', {
         'categories': get_category_names(),
-        'file_types': {
-            'text': ['txt', 'md', 'log', 'ini', 'conf', 'cfg', 'properties'],
-            'office': ['docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt', 'pdf'],
-            'data': ['csv', 'tsv', 'dat', 'json', 'xml', 'yaml', 'yml'],
-            'web': ['html', 'htm', 'css', 'js'],
-            'archive': ['zip', 'rar'],
-            'image': ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff']
-        }
+        'file_types': ALL_REGEX_PATTERNS_BACKEND.file_types
     })
 
 def regex_search_results(request):
@@ -411,260 +443,353 @@ def regex_search_detail(request, file_path):
     })
 
 def quarantine_file(request, file_path):
-    """Dosyayı karantinaya alır."""
-    try:
-        quarantine_dir = os.path.join(settings.MEDIA_ROOT, 'quarantine')
-        os.makedirs(quarantine_dir, exist_ok=True)
-        
-        file_name = os.path.basename(file_path)
-        quarantine_path = os.path.join(quarantine_dir, file_name)
-        
-        os.rename(file_path, quarantine_path)
-        messages.success(request, f'Dosya karantinaya alındı: {file_name}')
-        
-    except Exception as e:
-        messages.error(request, f'Karantina hatası: {str(e)}')
-        
-    return redirect('regex:regex_search_results')
-
-def edit_file(request, file_path):
-    """Dosya içeriğini düzenler."""
+    """Dosyayı karantinaya alır - AJAX ve form desteği ile."""
+    file_path = urllib.parse.unquote(file_path)
+    
     if request.method == 'POST':
         try:
-            content = request.POST.get('content', '')
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(content)
-            messages.success(request, 'Dosya başarıyla güncellendi.')
+            # Dosya güvenlik kontrolü
+            if not os.path.exists(file_path):
+                error_msg = 'Dosya bulunamadı.'
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': error_msg})
+                messages.error(request, error_msg)
+                return redirect('regex:regex_search_results')
+                
+            if not is_safe_path(file_path):
+                error_msg = 'Dosya güvenli değil.'
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': error_msg})
+                messages.error(request, error_msg)
+                return redirect('regex:regex_search_results')
             
+            # Karantina dizinini oluştur
+            if hasattr(settings, 'MEDIA_ROOT') and settings.MEDIA_ROOT:
+                quarantine_dir = os.path.join(settings.MEDIA_ROOT, 'quarantine', 'quarantined_files')
+            else:
+                quarantine_dir = os.path.join(settings.BASE_DIR, 'quarantine', 'quarantined_files')
+                
+            os.makedirs(quarantine_dir, exist_ok=True)
+            
+            # Dosya adı ve hedef yol
+            file_name = os.path.basename(file_path)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            quarantine_filename = f"{timestamp}_{file_name}.quarantine"
+            quarantine_path = os.path.join(quarantine_dir, quarantine_filename)
+            
+            # Dosyayı karantinaya taşı
+            import shutil
+            shutil.move(file_path, quarantine_path)
+            
+            # Karantina kayıt dosyası oluştur
+            quarantine_info = {
+                'original_path': file_path,
+                'quarantine_path': quarantine_path,
+                'quarantine_time': timestamp,
+                'file_name': file_name,
+                'file_size': os.path.getsize(quarantine_path),
+                'quarantine_reason': 'Regex tarama sonucu'
+            }
+            
+            info_file = os.path.join(quarantine_dir, f"{quarantine_filename}.info")
+            import json
+            with open(info_file, 'w', encoding='utf-8') as f:
+                json.dump(quarantine_info, f, indent=2, ensure_ascii=False)
+            
+            success_msg = f'Dosya başarıyla karantinaya alındı: {file_name}'
+            logger.info(f"File quarantined: {file_path} -> {quarantine_path}")
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'message': success_msg})
+            else:
+                messages.success(request, success_msg)
+                return redirect('regex:regex_search_results')
+                
         except Exception as e:
-            messages.error(request, f'Dosya güncelleme hatası: {str(e)}')
-            
+            error_msg = f'Karantina hatası: {str(e)}'
+            logger.error(error_msg)
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': error_msg})
+            else:
+                messages.error(request, error_msg)
+                return redirect('regex:regex_search_results')
+    
+    # GET isteği için
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': False, 'error': 'Geçersiz istek.'})
+    else:
         return redirect('regex:regex_search_results')
-        
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-            
-    except Exception as e:
-        messages.error(request, f'Dosya okuma hatası: {str(e)}')
-        return redirect('regex:regex_search_results')
-        
-    return render(request, 'regex/edit_file.html', {
-        'file_path': file_path,
-        'content': content
-    })
 
 def is_safe_path(path):
     """Dosya yolunun güvenli olup olmadığını kontrol eder."""
     try:
         # Mutlak yol kontrolü
         abs_path = os.path.abspath(path)
-        # İzin verilen dizinlerin kontrolü
-        allowed_dirs = [
-            os.path.abspath(settings.MEDIA_ROOT),
-            os.path.abspath(settings.BASE_DIR)
+        
+        # Ubuntu subsystem için güvenli dizin kontrolü
+        allowed_patterns = [
+            '/mnt/c/Users/',  # Windows C: sürücüsü Ubuntu subsystem üzerinden
+            '/home/',         # Linux home dizini
+            '/tmp/',          # Geçici dosyalar
+            '/var/tmp/',      # Geçici dosyalar
+            os.path.abspath(settings.BASE_DIR),  # Django proje dizini
         ]
-        return any(abs_path.startswith(d) for d in allowed_dirs)
-    except Exception:
+        
+        # Django MEDIA_ROOT varsa onu da ekle
+        if hasattr(settings, 'MEDIA_ROOT') and settings.MEDIA_ROOT:
+            allowed_patterns.append(os.path.abspath(settings.MEDIA_ROOT))
+            
+        # Güvenli yol kontrolü
+        is_safe = any(abs_path.startswith(pattern) for pattern in allowed_patterns)
+        
+        # Tehlikeli yolları reddet
+        dangerous_patterns = [
+            '/etc/',
+            '/var/log/',
+            '/var/www/',
+            '/usr/bin/',
+            '/bin/',
+            '/sbin/',
+            '/boot/',
+            '/proc/',
+            '/sys/',
+            '/dev/',
+            '/root/',
+            '/..',
+            '../'
+        ]
+        
+        is_dangerous = any(pattern in abs_path for pattern in dangerous_patterns)
+        
+        return is_safe and not is_dangerous
+        
+    except Exception as e:
+        logger.error(f"Error checking path safety: {str(e)}")
         return False
 
-def sensitive_scan(request):
-    """Hassas veri taraması yapar."""
+def edit_file(request, file_path):
+    """Dosya içeriğini düzenler - AJAX ve form desteği ile."""
+    file_path = urllib.parse.unquote(file_path)
+    
     if request.method == 'POST':
-        directory = request.POST.get('directory', '')
-        file_types = request.POST.getlist('file_types', [])
-        selected_categories = request.POST.getlist('categories', [])
-        selected_subcategories = request.POST.getlist('subcategories', [])
+        try:
+            # JSON verisi kontrolü (AJAX)
+            if request.content_type == 'application/json':
+                import json
+                data = json.loads(request.body)
+                content = data.get('content', '')
+            else:
+                # Form verisi
+                content = request.POST.get('content', '')
+                
+            # Dosya güvenlik kontrolü
+            if not is_safe_path(file_path):
+                if request.content_type == 'application/json':
+                    return JsonResponse({'success': False, 'error': 'Dosya güvenli değil.'})
+                messages.error(request, 'Dosya güvenli değil.')
+                return redirect('regex:regex_search_results')
+                
+            # Dosyayı kaydet
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+                
+            if request.content_type == 'application/json':
+                return JsonResponse({'success': True, 'message': 'Dosya başarıyla güncellendi.'})
+            else:
+                messages.success(request, 'Dosya başarıyla güncellendi.')
+                return redirect('regex:regex_search_results')
+                
+        except Exception as e:
+            error_msg = f'Dosya güncelleme hatası: {str(e)}'
+            logger.error(error_msg)
+            if request.content_type == 'application/json':
+                return JsonResponse({'success': False, 'error': error_msg})
+            else:
+                messages.error(request, error_msg)
+                return redirect('regex:regex_search_results')
+    
+    # GET isteği - dosya içeriğini döndür
+    try:
+        if not os.path.exists(file_path):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': 'Dosya bulunamadı.'})
+            messages.error(request, 'Dosya bulunamadı.')
+            return redirect('regex:regex_search_results')
+            
+        if not is_safe_path(file_path):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': 'Dosya güvenli değil.'})
+            messages.error(request, 'Dosya güvenli değil.')
+            return redirect('regex:regex_search_results')
+
+        # Dosya içeriğini oku
+        content = get_file_content(file_path)
+        if content is None:
+            content = ''
+            
+        # AJAX isteği ise JSON döndür
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'content': content,
+                'file_name': os.path.basename(file_path),
+                'file_path': file_path
+            })
         
-        if not directory or not os.path.exists(directory):
-            messages.error(request, 'Geçersiz dizin yolu.')
-            return redirect('regex:sensitive_scan')
-            
-        if not file_types:
-            messages.error(request, 'En az bir dosya türü seçmelisiniz.')
-            return redirect('regex:sensitive_scan')
-            
-        if not selected_categories and not selected_subcategories:
-            messages.error(request, 'En az bir kategori veya alt kategori seçmelisiniz.')
-            return redirect('regex:sensitive_scan')
+        # Normal sayfa isteği
+        return render(request, 'regex/edit_file.html', {
+            'file_path': file_path,
+            'content': content,
+            'file_name': os.path.basename(file_path)
+        })
+        
+    except Exception as e:
+        error_msg = f'Dosya okuma hatası: {str(e)}'
+        logger.error(error_msg)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': error_msg})
+        else:
+            messages.error(request, error_msg)
+            return redirect('regex:regex_search_results')
 
-        start_time = time.time()
-        logger.info(f"Starting sensitive data scan in directory: {directory}")
-        logger.info(f"Selected file types: {file_types}")
-        logger.info(f"Selected categories: {selected_categories}")
-        logger.info(f"Selected subcategories: {selected_subcategories}")
+def get_category_names():
+    """Kategori isimlerini döndürür."""
+    return ALL_REGEX_PATTERNS_BACKEND.get_category_names()
 
-        # Seçilen kategorilere göre regex desenlerini al
-        combined_patterns = []
-        for category in selected_categories:
-            patterns = ALL_REGEX_PATTERNS_BACKEND.get(category, [])
-            logger.info(f"Found {len(patterns)} patterns for category: {category}")
-            
-            # Eğer bu kategori için alt kategoriler seçilmişse, sadece onları derle
-            if category in selected_subcategories:
-                patterns = [p for p in patterns if p['subcategory'] in selected_subcategories[category]]
-            
-            for pattern_dict in patterns:
-                try:
-                    compiled_pattern = re.compile(pattern_dict['pattern'], re.IGNORECASE | re.MULTILINE)
-                    combined_patterns.append({
-                        'pattern': compiled_pattern,
-                        'category': category,
-                        'subcategory': pattern_dict['subcategory'],
-                        'description': pattern_dict.get('description', '')
-                    })
-                except re.error as e:
-                    logger.error(f"Error compiling pattern {pattern_dict['pattern']}: {str(e)}")
-                    continue
+def sensitive_scan(request):
+    """Hassas veri taraması sayfasını gösterir ve tarama sonuçlarını işler."""
+    if request.method == 'POST':
+        directory = request.POST.get('directory', '').strip()
+        selected_categories = request.POST.getlist('categories')
+        selected_subcategories = request.POST.getlist('subcategories[]')
+        selected_file_types = request.POST.getlist('file_types')
 
-        logger.info(f"Total combined patterns: {len(combined_patterns)}")
+        if not directory:
+            return render(request, 'regex/sensitive_scan.html', {
+                'error_message': 'Lütfen bir dizin seçin.',
+                'categories': get_category_names(),
+                'file_types': ALL_REGEX_PATTERNS_BACKEND.file_types
+            })
+
+        if not os.path.exists(directory):
+            return render(request, 'regex/sensitive_scan.html', {
+                'error_message': f'Dizin bulunamadı: {directory}',
+                'categories': get_category_names(),
+                'file_types': ALL_REGEX_PATTERNS_BACKEND.file_types
+            })
+
+        patterns = []
+        if selected_categories:
+            for category in selected_categories:
+                patterns.extend(ALL_REGEX_PATTERNS_BACKEND.get_patterns_by_category(category))
+
+        if selected_subcategories:
+            for subcategory in selected_subcategories:
+                for category in ALL_REGEX_PATTERNS_BACKEND.categories.values():
+                    if subcategory in category.get('subcategories', {}):
+                        patterns.extend(category['subcategories'][subcategory]['patterns'])
+
+        if not patterns:
+            return render(request, 'regex/sensitive_scan.html', {
+                'error_message': 'Lütfen en az bir kategori veya alt kategori seçin.',
+                'categories': get_category_names(),
+                'file_types': ALL_REGEX_PATTERNS_BACKEND.file_types
+            })
 
         results = []
-        processed_files_count = 0
-        matched_files_count = 0
         error_files = []
         skipped_files = []
 
-        # Fetch all quarantined file paths to exclude them from scanning
-        quarantined_paths = set(QuarantinedFile.objects.filter(status='quarantined').values_list('original_path', flat=True))
-        logger.info(f"Found {len(quarantined_paths)} files in quarantine. These will be skipped.")
+        # Derlenmiş regex desenleri
+        compiled_patterns = []
+        for pattern in patterns:
+            try:
+                compiled_patterns.append(re.compile(pattern, re.IGNORECASE | re.MULTILINE))
+            except re.error as e:
+                logger.error(f"Regex derleme hatası: {pattern} - {str(e)}")
 
-        try:
-            logger.info("Starting file walk...")
-            for root, dirs, files in os.walk(directory):
-                # Skip certain directories
-                dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ['node_modules', 'venv', '__pycache__', 'quarantine']]
-                
-                # Check for timeout (5 minutes)
-                if time.time() - start_time > 300:
-                    logger.warning("Scan timeout reached after 5 minutes")
-                    return render(request, 'regex/sensitive_scan.html', {
-                        'error_message': 'Tarama zaman aşımına uğradı (5 dakika). Lütfen daha küçük bir dizin seçin.',
-                        'partial_results': results,
-                        'processed_files_count': processed_files_count,
-                        'matched_files_count': matched_files_count,
-                        'error_files': error_files,
-                        'skipped_files': skipped_files
-                    })
+        for root, dirs, files in os.walk(directory):
+            # Gizli dizinleri ve özel dizinleri atla
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ['node_modules', 'venv', '__pycache__']]
+            
+            for file in files:
+                file_path = os.path.join(root, file)
+                file_ext = os.path.splitext(file)[1].lower().lstrip('.')
 
-                logger.info(f"Processing directory: {root}")
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    
-                    # Check if file is quarantined
-                    if file_path in quarantined_paths:
-                        skipped_files.append({'file': file_path, 'reason': 'Karantinaya alınmış dosya'})
+                # Dosya türü kontrolü
+                if file_ext not in selected_file_types:
+                    continue
+
+                # Dosya boyutu kontrolü (5MB'dan büyük dosyaları atla)
+                try:
+                    if os.path.getsize(file_path) > 5 * 1024 * 1024:
+                        skipped_files.append(f"{file_path} (Dosya boyutu çok büyük: >5MB)")
                         continue
+                except OSError as e:
+                    error_files.append(f"{file_path} (Dosya boyutu alınamadı: {str(e)})")
+                    continue
 
-                    # Skip certain file types
-                    if file.startswith('.') or file.endswith(('.pyc', '.pyo', '.pyd', '.so', '.dll', '.exe', '.bin')):
-                        skipped_files.append({'file': file_path, 'reason': 'Gizli veya derlenmiş dosya'})
-                        continue
-
-                    # Check file extension
-                    file_type = get_file_type(file_path)
-                    if file_types and file_type not in file_types:
-                        skipped_files.append({'file': file_path, 'reason': 'Desteklenmeyen dosya uzantısı'})
-                        continue
-
-                    if not is_safe_path(file_path):
-                        logger.debug(f"Skipping unsafe file: {file_path}")
-                        skipped_files.append({'file': file_path, 'reason': 'Güvensiz yol'})
-                        continue
-
-                    # Skip binary files and large files
-                    try:
-                        if os.path.getsize(file_path) > 5 * 1024 * 1024:  # Skip files larger than 5MB
-                            logger.debug(f"Skipping large file: {file_path}")
-                            skipped_files.append({'file': file_path, 'reason': 'Büyük dosya (>5MB)'})
-                            continue
-                    except OSError as e:
-                        logger.error(f"Error getting file size for {file_path}: {str(e)}")
-                        error_files.append({'path': file_path, 'error': str(e)})
-                        continue
-
-                    # Dosya içeriğini oku (uzantıya göre)
-                    content = get_file_content(file_path)
-                    if content is None:
-                        error_files.append({
-                            'path': file_path,
-                            'error': 'Dosya okunamadı veya erişim izni yok'
-                        })
-                        continue
-
-                    processed_files_count += 1
-                    if processed_files_count % 100 == 0:
-                        logger.info(f"Processed {processed_files_count} files so far...")
-
-                    pattern_matches = {}
-                    for pattern_info in combined_patterns:
-                        pattern = pattern_info['pattern']
-                        category = pattern_info['category']
-                        subcategory = pattern_info['subcategory']
-                        description = pattern_info['description']
-                        try:
-                            matches = pattern.findall(content) if content else []
-                            if matches:
-                                if category not in pattern_matches:
-                                    pattern_matches[category] = {}
-                                if subcategory not in pattern_matches[category]:
-                                    pattern_matches[category][subcategory] = {
-                                        'matches': [],
-                                        'description': description
-                                    }
-                                pattern_matches[category][subcategory]['matches'].extend(matches)
-                                logger.debug(f"Found match in {file_path}: {subcategory}")
-                        except Exception as e:
-                            logger.error(f"Error processing pattern in {file_path}: {str(e)}")
+                # Dosya içeriğini oku
+                try:
+                    # Önce dosyanın metin dosyası olup olmadığını kontrol et
+                    with open(file_path, 'rb') as f:
+                        chunk = f.read(1024)
+                        if b'\x00' in chunk:  # Binary dosya kontrolü
+                            skipped_files.append(f"{file_path} (Binary dosya)")
                             continue
 
-                    if pattern_matches:
-                        matched_files_count += 1
-                        results.append({
-                            'file_path': file_path,
-                            'matches': pattern_matches
-                        })
-                        logger.info(f"Found matches in file: {file_path}")
+                    # Dosyayı oku
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                        file_matches = defaultdict(lambda: defaultdict(list))
 
-        except Exception as e:
-            logger.error(f"Error during file processing: {str(e)}")
-            return render(request, 'regex/sensitive_scan.html', {
-                'error_message': f'Dosya işleme sırasında bir hata oluştu: {str(e)}',
-                'partial_results': results,
-                'processed_files_count': processed_files_count,
-                'matched_files_count': matched_files_count,
-                'error_files': error_files,
-                'skipped_files': skipped_files
-            })
+                        # Her desen için eşleşmeleri ara
+                        for pattern in compiled_patterns:
+                            for match in pattern.finditer(content):
+                                line_number = content[:match.start()].count('\n') + 1
+                                line = content.split('\n')[line_number - 1]
+                                context = get_context_lines(content, line_number)
 
-        scan_duration = time.time() - start_time
-        logger.info(f"Search completed in {scan_duration:.2f} seconds. Processed files: {processed_files_count}, Matched files: {matched_files_count}")
+                                # Eşleşmenin hangi kategori ve alt kategoriye ait olduğunu bul
+                                for category, data in ALL_REGEX_PATTERNS_BACKEND.categories.items():
+                                    for subcategory, subdata in data['subcategories'].items():
+                                        if pattern.pattern in subdata['patterns']:
+                                            file_matches[data['name']][subdata['name']].append({
+                                                'line': line_number,
+                                                'match': match.group(),
+                                                'context': context,
+                                                'pattern': pattern.pattern
+                                            })
 
-        # Sonuçları session'a kaydet
-        request.session['sensitive_scan_results'] = {
+                        if file_matches:
+                            results.append({
+                                'file_path': file_path,
+                                'matches': file_matches
+                            })
+
+                except UnicodeDecodeError:
+                    error_files.append(f"{file_path} (Karakter kodlaması hatası)")
+                except PermissionError:
+                    error_files.append(f"{file_path} (Erişim izni yok)")
+                except Exception as e:
+                    error_files.append(f"{file_path} ({str(e)})")
+
+        return render(request, 'regex/sensitive_scan_results.html', {
             'results': results,
             'error_files': error_files,
             'skipped_files': skipped_files,
+            'directory': directory,
             'stats': {
-                'processed_files': processed_files_count,
-                'matched_files': matched_files_count,
-                'duration': scan_duration
+                'total_files': len(results) + len(error_files) + len(skipped_files),
+                'matched_files': len(results),
+                'error_files': len(error_files),
+                'skipped_files': len(skipped_files)
             }
-        }
-        
-        return redirect('regex:sensitive_scan_results')
+        })
 
-    # GET isteği için
     return render(request, 'regex/sensitive_scan.html', {
         'categories': get_category_names(),
-        'file_types': {
-            'text': ['txt', 'md', 'log', 'ini', 'conf', 'cfg', 'properties'],
-            'office': ['docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt', 'pdf'],
-            'data': ['csv', 'tsv', 'json', 'xml', 'yaml', 'yml'],
-            'web': ['html', 'htm', 'css', 'js'],
-            'archive': ['zip', 'rar'],
-            'image': ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff']
-        }
+        'file_types': ALL_REGEX_PATTERNS_BACKEND.file_types
     })
 
 def sensitive_scan_results(request):
@@ -682,56 +807,161 @@ def sensitive_scan_results(request):
     })
 
 def sensitive_scan_detail(request, file_path):
-    """View function for displaying detailed scan results for a specific file"""
-    decoded_file_path = urllib.parse.unquote(file_path)
-    matches = {}
-
+    """Hassas veri taraması sonuçlarının detaylarını gösterir."""
     try:
-        encodings = ['utf-8', 'latin-1', 'cp1254', 'iso-8859-9']
-        for enc in encodings:
-            try:
-                with open(decoded_file_path, 'r', encoding=enc) as f:
-                    content = f.read()
-                break
-            except (PermissionError, FileNotFoundError, UnicodeDecodeError) as e:
-                logger.error(f"Error reading file {decoded_file_path}: {str(e)}")
-                continue
-        else:
-            return render(request, 'regex/sensitive_scan_detail.html', {
-                'error_message': 'Dosya okunamadı veya erişim izni yok.',
-                'file_path': decoded_file_path
-            })
+        # Dosya içeriğini oku
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
 
-        for category, patterns in ALL_REGEX_PATTERNS_BACKEND.items():
-            category_matches = {}
-            for pattern_dict in patterns:
-                try:
-                    pattern = re.compile(pattern_dict['pattern'], re.IGNORECASE | re.MULTILINE)
-                    found_matches = pattern.findall(content)
-                    if found_matches:
-                        category_matches[pattern_dict['subcategory']] = found_matches
-                except re.error as e:
-                    logger.error(f"Regex error with pattern {pattern_dict['pattern']}: {str(e)}")
-                    continue
-            
-            if category_matches:
-                matches[category] = category_matches
+        # Eşleşmeleri bul
+        matches = []
+        for category, data in ALL_REGEX_PATTERNS_BACKEND.categories.items():
+            for subcategory, subdata in data['subcategories'].items():
+                for pattern in subdata['patterns']:
+                    try:
+                        compiled_pattern = re.compile(pattern, re.IGNORECASE | re.MULTILINE)
+                        for match in compiled_pattern.finditer(content):
+                            line_number = content[:match.start()].count('\n') + 1
+                            line = content.split('\n')[line_number - 1]
+                            context = get_context_lines(content, line_number)
+                            matches.append({
+                                'category': data['name'],
+                                'subcategory': subdata['name'],
+                                'line': line_number,
+                                'match': match.group(),
+                                'context': context,
+                                'pattern': pattern
+                            })
+                    except re.error as e:
+                        logger.error(f"Regex derleme hatası: {pattern} - {str(e)}")
+                        continue
+
+        # Eşleşmeleri satır numarasına göre sırala
+        matches.sort(key=lambda x: x['line'])
 
         return render(request, 'regex/sensitive_scan_detail.html', {
-            'file_path': decoded_file_path,
-            'matches': matches
+            'file_path': file_path,
+            'matches': matches,
+            'quarantine_url': reverse('regex:quarantine_file', kwargs={'file_path': file_path})
         })
 
     except Exception as e:
-        logger.error(f"Error processing file {decoded_file_path}: {str(e)}")
         return render(request, 'regex/sensitive_scan_detail.html', {
             'error_message': f'Dosya işlenirken bir hata oluştu: {str(e)}',
-            'file_path': decoded_file_path
+            'file_path': file_path
         })
 
 def api_get_regex_patterns(request):
-    return JsonResponse(ALL_REGEX_PATTERNS_BACKEND)
+    """Regex desenlerini JSON formatında döndürür."""
+    patterns = {
+        'categories': ALL_REGEX_PATTERNS_BACKEND.categories,
+        'file_types': ALL_REGEX_PATTERNS_BACKEND.file_types
+    }
+    return JsonResponse(patterns)
 
 def quarantine_list(request):
     files = QuarantinedFile.objects.all().order_by('-quarantine_time')
     return render(request, 'regex/quarantine_list.html', {'files': files})
+
+def view_file(request, file_path):
+    """Dosyayı görüntüler ve eşleşen regex pattern'lerini işaretler."""
+    try:
+        file_path = urllib.parse.unquote(file_path)
+        
+        if not os.path.exists(file_path):
+            return render(request, 'regex/file_viewer.html', {
+                'error_message': 'Dosya bulunamadı.',
+                'file_path': file_path
+            })
+            
+        if not is_safe_path(file_path):
+            return render(request, 'regex/file_viewer.html', {
+                'error_message': 'Dosya güvenli değil veya erişim izniniz yok.',
+                'file_path': file_path
+            })
+        
+        # Session'dan regex pattern'lerini al
+        patterns = request.session.get('regex_patterns', [])
+        
+        content = get_file_content(file_path)
+        if content is None:
+            return render(request, 'regex/file_viewer.html', {
+                'error_message': 'Dosya içeriği okunamadı.',
+                'file_path': file_path
+            })
+            
+        # Eğer content bir hata mesajı ise
+        if isinstance(content, str) and content.startswith(('PDF dosyası', 'Dosya açılamıyor')):
+            return render(request, 'regex/file_viewer.html', {
+                'error_message': content,
+                'file_path': file_path,
+                'file_name': os.path.basename(file_path),
+                'file_type': get_file_type(file_path),
+                'file_size': os.path.getsize(file_path)
+            })
+        
+        file_type = get_file_type(file_path)
+        file_size = os.path.getsize(file_path)
+        file_name = os.path.basename(file_path)
+        
+        # Regex eşleşmelerini bul
+        all_matches = []
+        highlighted_content = content
+        
+        if patterns and content:
+            # Tüm pattern'ler için eşleşmeleri bul
+            for pattern in patterns:
+                try:
+                    compiled_pattern = re.compile(pattern, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+                    pattern_matches = list(compiled_pattern.finditer(content))
+                    all_matches.extend(pattern_matches)
+                except re.error as e:
+                    logger.error(f"Regex error for pattern '{pattern}': {str(e)}")
+            
+            # Eşleşmeleri pozisyona göre sırala
+            all_matches.sort(key=lambda m: m.start())
+            
+            # İçeriği HTML için escape et
+            import html
+            highlighted_content = html.escape(content)
+            
+            # Eşleşmeleri işaretle (üstü çizili yap)
+            if all_matches:
+                offset = 0
+                for match in all_matches:
+                    start = match.start() + offset
+                    end = match.end() + offset
+                    matched_text = highlighted_content[start:end]
+                    
+                    # HTML işaretlemesi ekle
+                    marked_text = f'<mark style="text-decoration: line-through; background-color: #ffeb3b;">{matched_text}</mark>'
+                    
+                    highlighted_content = highlighted_content[:start] + marked_text + highlighted_content[end:]
+                    offset += len(marked_text) - len(matched_text)
+        
+        # Desteklenen dosya türleri
+        viewable_types = ['txt', 'html', 'htm', 'css', 'js', 'json', 'xml', 'yaml', 'yml', 'md', 'log', 'ini', 'conf', 'cfg', 'properties']
+        
+        context = {
+            'file_path': file_path,
+            'file_name': file_name,
+            'file_type': file_type,
+            'file_size': file_size,
+            'content': highlighted_content,
+            'original_content': content,
+            'patterns': patterns,
+            'pattern': ', '.join(patterns) if patterns else '',
+            'matches_count': len(all_matches),
+            'is_viewable': file_type in viewable_types or file_type in ['pdf', 'docx', 'doc', 'pptx', 'ppt'],
+            'is_text_file': file_type in viewable_types,
+            'is_office_file': file_type in ['pdf', 'docx', 'doc', 'pptx', 'ppt'],
+        }
+        
+        return render(request, 'regex/file_viewer.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error viewing file {file_path}: {str(e)}")
+        return render(request, 'regex/file_viewer.html', {
+            'error_message': f'Dosya görüntülenirken hata oluştu: {str(e)}',
+            'file_path': file_path
+        })
