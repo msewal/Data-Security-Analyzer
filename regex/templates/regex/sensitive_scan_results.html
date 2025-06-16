@@ -1,0 +1,354 @@
+{% extends 'list/base.html' %}
+{% load static %}
+
+{% block title %}Hassas Veri Tarama Sonuçları{% endblock %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'list:index' %}">Ana Sayfa</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'regex:sensitive_scan' %}">Hassas Veri Taraması</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Sonuçlar</li>
+        </ol>
+    </nav>
+
+    <h2 class="mb-4">
+        <i class="bi bi-shield-check"></i> Hassas Veri Tarama Sonuçları
+    </h2>
+
+    <!-- İstatistikler -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">İşlenen Dosya</h5>
+                    <p class="card-text display-6">{{ stats.processed_files }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Eşleşen Dosya</h5>
+                    <p class="card-text display-6">{{ stats.matched_files }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">Hata</h5>
+                    <p class="card-text display-6">{{ error_files|length }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Atlanan</h5>
+                    <p class="card-text display-6">{{ skipped_files|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtreler -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="filterFileName" placeholder="Dosya adına göre filtrele...">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="filterPattern" placeholder="Desene göre filtrele...">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control" id="filterMatch" placeholder="Eşleşmeye göre filtrele...">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="filterResultType">
+                        <option value="">Tüm Sonuçlar</option>
+                        <option value="matches">Eşleşmeler</option>
+                        <option value="errors">Hatalar</option>
+                        <option value="skipped">Atlananlar</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sonuçlar -->
+    <div class="card">
+        <div class="card-body">
+            <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button" role="tab">
+                        Eşleşmeler <span class="badge bg-success">{{ stats.matched_files }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="errors-tab" data-bs-toggle="tab" data-bs-target="#errors" type="button" role="tab">
+                        Hatalar <span class="badge bg-warning">{{ error_files|length }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="skipped-tab" data-bs-toggle="tab" data-bs-target="#skipped" type="button" role="tab">
+                        Atlananlar <span class="badge bg-secondary">{{ skipped_files|length }}</span>
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content mt-3" id="resultTabsContent">
+                <!-- Eşleşmeler -->
+                <div class="tab-pane fade show active" id="matches" role="tabpanel">
+                    {% if results %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Dosya</th>
+                                    <th>Kategori</th>
+                                    <th>Alt Kategori</th>
+                                    <th>Eşleşmeler</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in results %}
+                                <tr>
+                                    <td>{{ result.file_path }}</td>
+                                    <td>
+                                        {% for category in result.matches.keys %}
+                                        <span class="badge bg-primary">{{ category }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% for category, subcats in result.matches.items %}
+                                            {% for subcat in subcats.keys %}
+                                            <span class="badge bg-info">{{ subcat }}</span>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% for category, subcats in result.matches.items %}
+                                            {% for subcat, matches in subcats.items %}
+                                            <div>
+                                                <strong>{{ subcat }}:</strong>
+                                                {% for match in matches %}
+                                                <span class="badge bg-light text-dark">{{ match }}</span>
+                                                {% endfor %}
+                                            </div>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{% url 'regex:sensitive_scan_detail' result.file_path %}" class="btn btn-sm btn-info">
+                                                <i class="bi bi-eye"></i> Detay
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-warning" onclick="editFile('{{ result.file_path }}')">
+                                                <i class="bi bi-pencil"></i> Düzenle
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger" onclick="quarantineFile('{{ result.file_path }}')">
+                                                <i class="bi bi-shield-lock"></i> Karantina
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Eşleşme bulunamadı.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Hatalar -->
+                <div class="tab-pane fade" id="errors" role="tabpanel">
+                    {% if error_files %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Dosya</th>
+                                    <th>Hata</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for error in error_files %}
+                                <tr>
+                                    <td>{{ error.path }}</td>
+                                    <td class="text-danger">{{ error.error }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Hata bulunamadı.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Atlananlar -->
+                <div class="tab-pane fade" id="skipped" role="tabpanel">
+                    {% if skipped_files %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Dosya</th>
+                                    <th>Neden</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for skipped in skipped_files %}
+                                <tr>
+                                    <td>{{ skipped.file }}</td>
+                                    <td class="text-muted">{{ skipped.reason }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Atlanan dosya bulunamadı.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dosya Düzenleme Modal -->
+<div class="modal fade" id="editFileModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dosya Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editFileForm" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="file_path" id="editFilePath">
+                    <div class="mb-3">
+                        <label for="fileContent" class="form-label">Dosya İçeriği</label>
+                        <textarea class="form-control" id="fileContent" name="content" rows="15"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="saveFile()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Filtreleme fonksiyonları
+    function filterResults() {
+        const fileName = document.getElementById('filterFileName').value.toLowerCase();
+        const pattern = document.getElementById('filterPattern').value.toLowerCase();
+        const match = document.getElementById('filterMatch').value.toLowerCase();
+        const resultType = document.getElementById('filterResultType').value;
+
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const fileCell = row.cells[0].textContent.toLowerCase();
+            const patternCell = row.cells[2].textContent.toLowerCase();
+            const matchCell = row.cells[3].textContent.toLowerCase();
+
+            const fileNameMatch = fileCell.includes(fileName);
+            const patternMatch = patternCell.includes(pattern);
+            const matchTextMatch = matchCell.includes(match);
+
+            if (resultType) {
+                const tab = document.querySelector(`#${resultType}-tab`);
+                if (tab) {
+                    tab.click();
+                }
+            }
+
+            row.style.display = fileNameMatch && patternMatch && matchTextMatch ? '' : 'none';
+        });
+    }
+
+    document.getElementById('filterFileName').addEventListener('input', filterResults);
+    document.getElementById('filterPattern').addEventListener('input', filterResults);
+    document.getElementById('filterMatch').addEventListener('input', filterResults);
+    document.getElementById('filterResultType').addEventListener('change', filterResults);
+
+    // Dosya düzenleme
+    function editFile(filePath) {
+        document.getElementById('editFilePath').value = filePath;
+        fetch(`/regex/edit/${encodeURIComponent(filePath)}/`)
+            .then(response => response.text())
+            .then(content => {
+                document.getElementById('fileContent').value = content;
+                new bootstrap.Modal(document.getElementById('editFileModal')).show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Dosya içeriği alınamadı.');
+            });
+    }
+
+    function saveFile() {
+        const form = document.getElementById('editFileForm');
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                throw new Error('Dosya kaydedilemedi.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert(error.message);
+        });
+    }
+
+    // Karantina işlemi
+    function quarantineFile(filePath) {
+        if (confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
+            fetch(`/regex/quarantine/${encodeURIComponent(filePath)}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    throw new Error('Dosya karantinaya alınamadı.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert(error.message);
+            });
+        }
+    }
+</script>
+{% endblock %} 

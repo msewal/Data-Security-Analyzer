@@ -1,355 +1,352 @@
-{% extends "regex/base.html" %}
+{% extends 'list/base.html' %}
 {% load static %}
 
-{% block regex_title %}Regex Arama Sonuçları{% endblock %}
+{% block title %}Regex Arama Sonuçları{% endblock %}
 
-{% block regex_content %}
+{% block content %}
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Tarama Sonuçları</h2>
-        <a href="{% url 'regex:sensitive_scan' %}" class="btn btn-primary">
-            <i class="bi bi-search"></i> Yeni Tarama Başlat
-        </a>
-    </div>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'regex_search' %}">Regex Arama</a></li>
+            <li class="breadcrumb-item active">Sonuçlar</li>
+        </ol>
+    </nav>
 
-    <!-- İstatistik Kartları -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card bg-primary text-white">
                 <div class="card-body">
-                    <h5 class="card-title">İşlenen Dosya</h5>
-                    <p class="card-text display-6">{{ processed_files_count }}</p>
+                    <h5 class="card-title">İşlenen Dosyalar</h5>
+                    <p class="card-text display-4">{{ results.matches|length|add:results.errors|length|add:results.skipped|length }}</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card bg-success text-white">
                 <div class="card-body">
-                    <h5 class="card-title">Eşleşen Dosya</h5>
-                    <p class="card-text display-6">{{ matched_files_count }}</p>
+                    <h5 class="card-title">Eşleşen Dosyalar</h5>
+                    <p class="card-text display-4">{{ results.matches|length }}</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card bg-danger text-white">
                 <div class="card-body">
-                    <h5 class="card-title">Hata Oluşan Dosya</h5>
-                    <p class="card-text display-6">{{ error_files|length }}</p>
+                    <h5 class="card-title">Hata Dosyaları</h5>
+                    <p class="card-text display-4">{{ results.errors|length }}</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-info text-white">
+            <div class="card bg-warning text-white">
                 <div class="card-body">
-                    <h5 class="card-title">Tarama Süresi</h5>
-                    <p class="card-text display-6">{{ scan_duration }}s</p>
+                    <h5 class="card-title">Atlanan Dosyalar</h5>
+                    <p class="card-text display-4">{{ results.skipped|length }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Tarama Detayları -->
-<div class="card mb-4">
+    <div class="card mb-4">
         <div class="card-header">
-            <h5 class="mb-0">Tarama Detayları</h5>
+            <h5 class="card-title mb-0">Filtreler</h5>
         </div>
-    <div class="card-body">
+        <div class="card-body">
             <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Tarama Yolu:</strong> {{ scan_path }}</p>
-                    <p><strong>Tarama Zamanı:</strong> {{ scan_time }}</p>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="fileFilter">Dosya Adı</label>
+                        <input type="text" class="form-control" id="fileFilter" placeholder="Dosya adına göre filtrele...">
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <p><strong>İşlenen Dosya Sayısı:</strong> {{ processed_files_count }}</p>
-                    <p><strong>Eşleşen Dosya Sayısı:</strong> {{ matched_files_count }}</p>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="patternFilter">Pattern</label>
+                        <input type="text" class="form-control" id="patternFilter" placeholder="Pattern'e göre filtrele...">
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Eşleşen Dosyalar -->
-    {% if matched_files %}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Eşleşen Dosyalar</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Dosya Adı</th>
-                            <th>Yol</th>
-                            <th>Eşleşen Regex</th>
-                            <th>Eşleşme Türü</th>
-                            <th>İşlemler</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for file in matched_files %}
-                        <tr>
-                            <td>{{ file.filename }}</td>
-                            <td>{{ file.path }}</td>
-                            <td>{{ file.matched_regex }}</td>
-                            <td>
-                                {% for category, subcategories in file.matches.items %}
-                                    {% for subcategory, matches in subcategories.items %}
-                                        <span class="badge bg-info">{{ subcategory }}</span>
-                                    {% endfor %}
-                                {% endfor %}
-                            </td>
-                            <td>
-                                <div class="btn-group">
-                                    <a href="{% url 'regex:regex_search_detail' file.path|urlencode %}" 
-                                       class="btn btn-info btn-sm" title="Detayları Görüntüle">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a href="{% url 'regex:edit_file' file.path|urlencode %}" 
-                                       class="btn btn-warning btn-sm" title="Düzenle">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <button class="btn btn-danger btn-sm quarantine-btn" 
-                                            data-file-path="{{ file.path }}"
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#quarantineModal"
-                                            title="Karantinaya Al">
-                                        <i class="bi bi-shield-lock"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Hata Oluşan Dosyalar -->
-            {% if error_files %}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Hata Oluşan Dosyalar</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Dosya Adı</th>
-                            <th>Hata</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for file in error_files %}
-                        <tr>
-                            <td>{{ file.filename }}</td>
-                            <td>{{ file.error }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="matchFilter">Eşleşme</label>
+                        <input type="text" class="form-control" id="matchFilter" placeholder="Eşleşmeye göre filtrele...">
+                    </div>
                 </div>
-            {% endif %}
-
-    <!-- Atlanan Dosyalar -->
-            {% if skipped_files %}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Atlanan Dosyalar</h5>
-                  </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Dosya Adı</th>
-                            <th>Neden</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for file in skipped_files %}
-                        <tr>
-                            <td>{{ file.filename }}</td>
-                            <td>{{ file.reason }}</td>
-                        </tr>
-                      {% endfor %}
-                    </tbody>
-                </table>
-                </div>
-              </div>
-            </div>
-            {% endif %}
-                                    </div>
-
-<!-- Karantina Modal -->
-<div class="modal fade" id="quarantineModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Dosyayı Karantinaya Al</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-            <div class="modal-body">
-                <p>Bu dosyayı karantinaya almak istediğinizden emin misiniz?</p>
-                <form id="quarantineForm">
-                    {% csrf_token %}
-                    <input type="hidden" id="quarantineFilePath" name="file_path">
-                    <div class="mb-3">
-                        <label for="threatType" class="form-label">Tehdit Türü</label>
-                        <select class="form-select" id="threatType" name="threat_type">
-                            <option value="Sensitive Data">Hassas Veri</option>
-                            <option value="Malware">Zararlı Yazılım</option>
-                            <option value="Suspicious">Şüpheli</option>
-                        </select>
-                        </div>
-                    <div class="mb-3">
-                        <label for="threatLevel" class="form-label">Tehdit Seviyesi</label>
-                        <select class="form-select" id="threatLevel" name="threat_level">
-                            <option value="High">Yüksek</option>
-                            <option value="Medium">Orta</option>
-                            <option value="Low">Düşük</option>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="resultTypeFilter">Sonuç Türü</label>
+                        <select class="form-control" id="resultTypeFilter">
+                            <option value="all">Tümü</option>
+                            <option value="matches">Eşleşmeler</option>
+                            <option value="errors">Hatalar</option>
+                            <option value="skipped">Atlananlar</option>
                         </select>
                     </div>
-                </form>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                <button type="button" class="btn btn-danger" id="confirmQuarantine">Karantinaya Al</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="matches-tab" data-toggle="tab" href="#matches" role="tab">
+                        Eşleşmeler ({{ results.matches|length }})
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="errors-tab" data-toggle="tab" href="#errors" role="tab">
+                        Hatalar ({{ results.errors|length }})
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="skipped-tab" data-toggle="tab" href="#skipped" role="tab">
+                        Atlananlar ({{ results.skipped|length }})
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="matches" role="tabpanel">
+                    {% if results.matches %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Dosya</th>
+                                    <th>Eşleşme Sayısı</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for match in results.matches %}
+                                <tr>
+                                    <td>{{ match.path }}</td>
+                                    <td>{{ match.matches|length }}</td>
+                                    <td>
+                                        <a href="{% url 'regex_search_detail' match.path %}" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i> Detay
+                                        </a>
+                                        <button class="btn btn-sm btn-warning edit-file" data-file="{{ match.path }}">
+                                            <i class="bi bi-pencil"></i> Düzenle
+                                        </button>
+                                        <button class="btn btn-sm btn-danger quarantine-file" data-file="{{ match.path }}">
+                                            <i class="bi bi-shield-lock"></i> Karantina
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        Eşleşen dosya bulunamadı.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="tab-pane fade" id="errors" role="tabpanel">
+                    {% if results.errors %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Dosya</th>
+                                    <th>Hata</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for error in results.errors %}
+                                <tr>
+                                    <td>{{ error.path }}</td>
+                                    <td>{{ error.error }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        Hata dosyası bulunamadı.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="tab-pane fade" id="skipped" role="tabpanel">
+                    {% if results.skipped %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Dosya</th>
+                                    <th>Neden</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for skip in results.skipped %}
+                                <tr>
+                                    <td>{{ skip.path }}</td>
+                                    <td>{{ skip.reason }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        Atlanan dosya bulunamadı.
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-{% endblock %}
+<!-- Dosya Düzenleme Modal -->
+<div class="modal fade" id="editFileModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dosya Düzenle</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editFileForm">
+                    <input type="hidden" id="editFilePath" name="file_path">
+                    <div class="form-group">
+                        <label for="fileContent">Dosya İçeriği</label>
+                        <textarea class="form-control" id="fileContent" name="content" rows="20"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="saveFile">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let isProcessing = false;
-    const quarantineModal = document.getElementById('quarantineModal');
-    const confirmButton = document.getElementById('confirmQuarantine');
-    const filePathInput = document.getElementById('quarantineFilePath');
-    const threatTypeSelect = document.getElementById('threatType');
-    const threatLevelSelect = document.getElementById('threatLevel');
+    // Filtreleme işlemleri
+    const fileFilter = document.getElementById('fileFilter');
+    const patternFilter = document.getElementById('patternFilter');
+    const matchFilter = document.getElementById('matchFilter');
+    const resultTypeFilter = document.getElementById('resultTypeFilter');
 
-    // Karantina butonlarına tıklama olayı ekle
-    document.querySelectorAll('.quarantine-btn').forEach(button => {
+    function applyFilters() {
+        const fileValue = fileFilter.value.toLowerCase();
+        const patternValue = patternFilter.value.toLowerCase();
+        const matchValue = matchFilter.value.toLowerCase();
+        const resultType = resultTypeFilter.value;
+
+        document.querySelectorAll('tbody tr').forEach(function(row) {
+            const file = row.querySelector('td:first-child').textContent.toLowerCase();
+            const pattern = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+            const match = row.querySelector('td:nth-child(3)')?.textContent.toLowerCase() || '';
+            const type = row.closest('.tab-pane').id;
+
+            const fileMatch = file.includes(fileValue);
+            const patternMatch = pattern.includes(patternValue);
+            const matchMatch = match.includes(matchValue);
+            const typeMatch = resultType === 'all' || type === resultType;
+
+            row.style.display = fileMatch && patternMatch && matchMatch && typeMatch ? '' : 'none';
+        });
+    }
+
+    fileFilter.addEventListener('input', applyFilters);
+    patternFilter.addEventListener('input', applyFilters);
+    matchFilter.addEventListener('input', applyFilters);
+    resultTypeFilter.addEventListener('change', applyFilters);
+
+    // Dosya düzenleme işlemleri
+    const editFileModal = document.getElementById('editFileModal');
+    const editFilePath = document.getElementById('editFilePath');
+    const fileContent = document.getElementById('fileContent');
+    const saveFile = document.getElementById('saveFile');
+
+    document.querySelectorAll('.edit-file').forEach(function(button) {
         button.addEventListener('click', function() {
-            const filePath = this.dataset.filePath;
-            filePathInput.value = filePath;
+            const file = this.dataset.file;
+            editFilePath.value = file;
+            
+            // Dosya içeriğini al
+            fetch(`/regex/edit_file/${encodeURIComponent(file)}`)
+                .then(response => response.json())
+                .then(data => {
+                    fileContent.value = data.content;
+                    $(editFileModal).modal('show');
+                })
+                .catch(error => {
+                    console.error('Dosya içeriği alınamadı:', error);
+                    alert('Dosya içeriği alınamadı.');
+                });
         });
     });
 
-    // Modal kapatıldığında formu sıfırla
-    quarantineModal.addEventListener('hidden.bs.modal', function() {
-        isProcessing = false;
-        confirmButton.disabled = false;
-        confirmButton.innerHTML = 'Karantinaya Al';
+    saveFile.addEventListener('click', function() {
+        const form = document.getElementById('editFileForm');
+        const formData = new FormData(form);
+
+        fetch('/regex/edit_file/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                $(editFileModal).modal('hide');
+                location.reload();
+            } else {
+                alert(data.error || 'Dosya kaydedilemedi.');
+            }
+        })
+        .catch(error => {
+            console.error('Dosya kaydedilemedi:', error);
+            alert('Dosya kaydedilemedi.');
+        });
     });
 
-    // Karantina onay butonuna tıklama olayı
-    confirmButton.addEventListener('click', async function() {
-        if (isProcessing) return;
-        
-        isProcessing = true;
-        confirmButton.disabled = true;
-        confirmButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> İşleniyor...';
-
-        const formData = new FormData();
-        formData.append('file_path', filePathInput.value);
-        formData.append('threat_type', threatTypeSelect.value);
-        formData.append('threat_level', threatLevelSelect.value);
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-
-        try {
-            const response = await fetch('/quarantine/quarantine/', {
-                    method: 'POST',
-                body: formData
-            });
-
-            // HTTP durumunu kontrol et
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // Content-Type'ı kontrol et
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Sunucudan geçersiz yanıt formatı alındı');
-            }
-
-            // Response'u bir kez oku
-            const responseText = await response.text();
-            
-            // Boş yanıt kontrolü
-            if (!responseText) {
-                throw new Error('Sunucudan boş yanıt alındı');
-            }
-
-            // JSON parse işlemi
-            let result;
-            try {
-                result = JSON.parse(responseText);
-            } catch (e) {
-                console.error('JSON parse hatası:', e);
-                console.error('Gelen veri:', responseText);
-                throw new Error('Sunucudan geçersiz JSON yanıtı alındı');
-            }
-
-            if (result.success) {
-                // Başarılı karantina işlemi
-                const modal = bootstrap.Modal.getInstance(quarantineModal);
-                modal.hide();
+    // Karantina işlemleri
+    document.querySelectorAll('.quarantine-file').forEach(function(button) {
+        button.addEventListener('click', function() {
+            if (confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
+                const file = this.dataset.file;
                 
-                // Başarı mesajını göster
-                const toast = new bootstrap.Toast(document.createElement('div'));
-                toast._element.className = 'toast align-items-center text-white bg-success border-0';
-                toast._element.innerHTML = `
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            <i class="bi bi-check-circle me-2"></i>
-                            ${result.message}
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                    </div>
-                `;
-                document.querySelector('.toast-container').appendChild(toast._element);
-                toast.show();
-
-                // 2 saniye sonra sayfayı yenile
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
+                fetch('/regex/quarantine_file/', {
+                    method: 'POST',
+                    body: JSON.stringify({ file: file }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
                     } else {
-                throw new Error(result.error || 'Karantina işlemi başarısız oldu');
+                        alert(data.error || 'Dosya karantinaya alınamadı.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Dosya karantinaya alınamadı:', error);
+                    alert('Dosya karantinaya alınamadı.');
+                });
             }
-        } catch (error) {
-            console.error('Karantina hatası:', error);
-            
-            // Hata mesajını göster
-            const toast = new bootstrap.Toast(document.createElement('div'));
-            toast._element.className = 'toast align-items-center text-white bg-danger border-0';
-            toast._element.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="bi bi-exclamation-circle me-2"></i>
-                        ${error.message}
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            `;
-            document.querySelector('.toast-container').appendChild(toast._element);
-            toast.show();
-
-            // Butonu sıfırla
-            isProcessing = false;
-            confirmButton.disabled = false;
-            confirmButton.innerHTML = 'Karantinaya Al';
-        }
+        });
     });
 });
 </script>
