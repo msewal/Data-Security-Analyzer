@@ -15,33 +15,39 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def convert_to_wsl_path(windows_path):
-    """Windows dosya yolunu WSL dosya yoluna dönüştürür."""
-    if not windows_path:
+def convert_to_wsl_path(path):
+    """Dosya yolunu WSL/Linux yoluna dönüştürür."""
+    if not path:
         return None
     
-    # Windows yolunu temizle
-    path = windows_path.replace('\\', '/')
+    # Zaten Linux yolu ise olduğu gibi döndür
+    if path.startswith('/'):
+        return path
     
-    # Sürücü harfini kontrol et ve dönüştür
+    # Windows yolunu Linux yoluna dönüştür
+    path = path.replace('\\', '/')
+    
+    # Sürücü harfini kontrol et ve dönüştür (C: -> /mnt/c)
     if ':' in path:
         drive, rest = path.split(':', 1)
         return f"/mnt/{drive.lower()}{rest}"
     
     return path
 
-def convert_to_windows_path(wsl_path):
-    """WSL dosya yolunu Windows dosya yoluna dönüştürür."""
+def convert_to_linux_path(wsl_path):
+    """WSL dosya yolunu standart Linux yoluna dönüştürür."""
     if not wsl_path:
         return None
     
-    # /mnt/ ile başlayan yolları dönüştür
+    # /mnt/ ile başlayan yolları home dizinine dönüştür
     if wsl_path.startswith('/mnt/'):
         parts = wsl_path.split('/', 3)
         if len(parts) >= 4:
-            drive = parts[2].upper()
+            # /mnt/c/Users/... -> /home/user/...
             rest = parts[3]
-            return f"{drive}:{rest}"
+            if 'Users' in rest:
+                user_part = rest.split('Users/')[-1] if 'Users/' in rest else rest
+                return f"/home/{user_part}"
     
     return wsl_path
 
@@ -183,7 +189,7 @@ def restore_file(request, file_id):
     try:
         quarantined_file = get_object_or_404(QuarantinedFile, id=file_id)
         
-        # Windows yolunu WSL yoluna dönüştür
+        # Dosya yolunu Linux yoluna dönüştür
         original_wsl_path = convert_to_wsl_path(quarantined_file.original_path)
         quarantine_wsl_path = convert_to_wsl_path(quarantined_file.quarantine_path)
         

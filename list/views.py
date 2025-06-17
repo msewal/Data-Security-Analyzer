@@ -1,10 +1,7 @@
 import os
 import stat
-import sys
-
-if sys.platform != 'win32':
-    import pwd
-    import grp
+import pwd
+import grp
 
 from datetime import datetime
 from django.shortcuts import render
@@ -27,23 +24,17 @@ def format_size(size):
 
 def get_owner(uid):
     """Get owner name from uid"""
-    if sys.platform != 'win32':
-        try:
-            return pwd.getpwuid(uid).pw_name
-        except:
-            return str(uid)
-    else:
-        return str(uid) # On Windows, just return the UID
+    try:
+        return pwd.getpwuid(uid).pw_name
+    except:
+        return str(uid)
 
 def get_group(gid):
     """Get group name from gid"""
-    if sys.platform != 'win32':
-        try:
-            return grp.getgrgid(gid).gr_name
-        except:
-            return str(gid)
-    else:
-        return str(gid) # On Windows, just return the GID
+    try:
+        return grp.getgrgid(gid).gr_name
+    except:
+        return str(gid)
 
 def get_items(path):
     """Get list of items in directory"""

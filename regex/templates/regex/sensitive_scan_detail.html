@@ -1,7 +1,7 @@
 {% extends 'list/base.html' %}
 {% load static %}
 
-{% block title %}Hassas Veri Taraması Detayları{% endblock %}
+{% block title %}Hassas Veri Taraması Detayları - {{ file_path }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -10,6 +10,27 @@
         border-radius: 8px;
         padding: 20px;
         margin-bottom: 20px;
+    }
+    .file-content {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 20px;
+        max-height: 600px;
+        overflow-y: auto;
+        font-family: 'Courier New', Courier, monospace;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        line-height: 1.5;
+    }
+    .highlighted-match {
+        background-color: #fff3cd;
+        border: 2px solid #ffc107;
+        padding: 2px 4px;
+        border-radius: 3px;
+        text-decoration: line-through;
+        text-decoration-color: #dc3545;
+        text-decoration-thickness: 2px;
     }
     .category-section {
         margin-bottom: 20px;
@@ -23,50 +44,12 @@
         border-radius: 3px;
         margin-bottom: 10px;
     }
-    .subcategory-section {
-        margin-left: 20px;
-        margin-bottom: 15px;
-    }
-    .match-list {
-        list-style: none;
-        padding-left: 0;
-    }
-    .match-item {
-        padding: 5px;
-        margin: 2px 0;
-        background-color: #fff;
-        border: 1px solid #dee2e6;
-        border-radius: 3px;
-    }
-    .back-button {
-        margin-bottom: 20px;
-    }
-    .action-buttons {
-        margin-top: 20px;
-        padding: 15px;
-        background-color: #fff;
-        border: 1px solid #dee2e6;
-        border-radius: 5px;
-    }
-    .quarantine-button {
-        background-color: #dc3545;
-        color: white;
-    }
-    .quarantine-button:hover {
-        background-color: #c82333;
-        color: white;
-    }
-    .toast-container {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 1000;
-    }
     .match-item {
         border: 1px solid #dee2e6;
         border-radius: 4px;
         padding: 15px;
         margin-bottom: 15px;
+        background-color: #fff;
     }
     .match-header {
         margin-bottom: 10px;
@@ -76,81 +59,220 @@
         padding: 10px;
         border-radius: 4px;
     }
-    .match-details {
-        margin-top: 10px;
+    .file-info-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
     }
-    pre {
-        margin: 0;
-        white-space: pre-wrap;
+    .file-stats {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
     }
-    code {
-        color: #e83e8c;
+    .nav-tabs .nav-link.active {
+        background-color: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+    .line-numbers {
+        color: #6c757d;
+        user-select: none;
+        margin-right: 15px;
+    }
+    .content-line {
+        display: flex;
+        margin-bottom: 2px;
+    }
+    .content-text {
+        flex: 1;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'list:index' %}">Ana Sayfa</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'regex:sensitive_scan' %}">Hassas Veri Taraması</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'regex:sensitive_scan_results' %}">Sonuçlar</a></li>
+            <li class="breadcrumb-item active">Detay</li>
+        </ol>
+    </nav>
+
     <h2 class="mb-4">
-        <i class="bi bi-file-earmark-text"></i> Dosya Detayları
+        <i class="bi bi-file-earmark-text"></i> Dosya Detay Analizi
     </h2>
 
     {% if error_message %}
     <div class="alert alert-danger">
-        {{ error_message }}
+        <i class="bi bi-exclamation-triangle"></i> {{ error_message }}
     </div>
     {% endif %}
 
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Dosya Bilgileri</h5>
-        </div>
+    <!-- Dosya Bilgileri -->
+    <div class="card file-info-card mb-4">
         <div class="card-body">
-            <p><strong>Dosya Yolu:</strong> {{ file_path }}</p>
-            <button class="btn btn-danger" onclick="quarantineFile()">
-                <i class="bi bi-shield-lock"></i> Dosyayı Karantinaya Al
-            </button>
-        </div>
-    </div>
-
-    {% if matches %}
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Bulunan Eşleşmeler</h5>
-        </div>
-        <div class="card-body">
-            {% for match in matches %}
-            <div class="match-item mb-4">
-                <div class="match-header">
-                    <h6>
-                        <span class="badge bg-primary">{{ match.category }}</span>
-                        <span class="badge bg-secondary">{{ match.subcategory }}</span>
-                        <small class="text-muted">Satır {{ match.line }}</small>
-                    </h6>
+            <div class="row">
+                <div class="col-md-8">
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-file-earmark"></i> {{ file_path|slice:"-20:" }}
+                    </h5>
+                    <p class="mb-2"><strong>Tam Yol:</strong> {{ file_path }}</p>
+                    <p class="mb-2"><strong>Dosya Türü:</strong> {{ file_type|default:"Bilinmiyor" }}</p>
+                    <p class="mb-0"><strong>Boyut:</strong> {{ file_size|default:"Bilinmiyor" }}</p>
                 </div>
-                <div class="match-content">
-                    <pre class="bg-light p-3 rounded"><code>{{ match.context }}</code></pre>
-                    <div class="match-details">
-                        <p><strong>Eşleşme:</strong> <code>{{ match.match }}</code></p>
-                        <p><strong>Desen:</strong> <code>{{ match.pattern }}</code></p>
+                <div class="col-md-4 text-end">
+                    <div class="btn-group-vertical">
+                        <a href="{% url 'regex:view_file' file_path %}" class="btn btn-light btn-sm mb-2">
+                            <i class="bi bi-eye"></i> Dosyayı Görüntüle
+                        </a>
+                        <a href="{% url 'regex:edit_file' file_path %}" class="btn btn-light btn-sm mb-2">
+                            <i class="bi bi-pencil"></i> Düzenle
+                        </a>
+                        <button class="btn btn-danger btn-sm" onclick="quarantineFile()">
+                            <i class="bi bi-shield-lock"></i> Karantinaya Al
+                        </button>
                     </div>
                 </div>
             </div>
-            {% endfor %}
         </div>
     </div>
-    {% else %}
-    <div class="alert alert-info">
-        Bu dosyada hassas veri eşleşmesi bulunamadı.
+
+    <!-- İstatistikler -->
+    {% if matches %}
+    <div class="file-stats">
+        <div class="row text-center">
+            <div class="col-md-3">
+                <h5 class="text-primary">{{ matches|length }}</h5>
+                <small class="text-muted">Toplam Eşleşme</small>
+            </div>
+            <div class="col-md-3">
+                <h5 class="text-success">{{ unique_categories|length }}</h5>
+                <small class="text-muted">Kategori</small>
+            </div>
+            <div class="col-md-3">
+                <h5 class="text-warning">{{ unique_subcategories|length }}</h5>
+                <small class="text-muted">Alt Kategori</small>
+            </div>
+            <div class="col-md-3">
+                <h5 class="text-info">{{ unique_patterns|length }}</h5>
+                <small class="text-muted">Benzersiz Desen</small>
+            </div>
+        </div>
     </div>
     {% endif %}
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4" id="detailTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="content-tab" data-bs-toggle="tab" data-bs-target="#content" type="button" role="tab">
+                <i class="bi bi-file-text"></i> Dosya İçeriği
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button" role="tab">
+                <i class="bi bi-search"></i> Eşleşmeler ({{ matches|length }})
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="detailTabsContent">
+        <!-- Dosya İçeriği -->
+        <div class="tab-pane fade show active" id="content" role="tabpanel">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Dosya İçeriği (Eşleşmeler Vurgulanmış)</h6>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" onclick="toggleLineNumbers()">
+                            <i class="bi bi-list-ol"></i> Satır No
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="downloadFile()">
+                            <i class="bi bi-download"></i> İndir
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="file-content" id="fileContent">
+                        {% if file_content %}
+                            {% for line in file_content_lines %}
+                            <div class="content-line">
+                                <span class="line-numbers" style="display: none;">{{ forloop.counter }}:</span>
+                                <span class="content-text">{{ line|safe }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-muted p-3">Dosya içeriği görüntülenemiyor.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Eşleşmeler -->
+        <div class="tab-pane fade" id="matches" role="tabpanel">
+            {% if matches %}
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Bulunan Hassas Veriler</h6>
+                </div>
+                <div class="card-body">
+                    {% for match in matches %}
+                    <div class="match-item">
+                        <div class="match-header">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h6 class="mb-1">
+                                        <span class="badge bg-primary">{{ match.category }}</span>
+                                        <span class="badge bg-secondary">{{ match.subcategory }}</span>
+                                        <small class="text-muted ms-2">Satır {{ match.line }}</small>
+                                    </h6>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="goToLine({{ match.line }})">
+                                        <i class="bi bi-arrow-right"></i> Satıra Git
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="match-content">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Bulunan Değer:</h6>
+                                    <code class="bg-warning p-2 rounded d-block">{{ match.match }}</code>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Kullanılan Desen:</h6>
+                                    <code class="bg-info p-2 rounded d-block text-white">{{ match.pattern }}</code>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <h6>Bağlam:</h6>
+                                <pre class="bg-light p-3 rounded"><code>{{ match.context }}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Bu dosyada hassas veri eşleşmesi bulunamadı.
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
-<div class="toast-container">
-    <div id="quarantineToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+<!-- Toast Bildirimi -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="actionToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="toast-header">
-            <strong class="me-auto">Karantina İşlemi</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            <i class="bi bi-info-circle me-2"></i>
+            <strong class="me-auto">Bildirim</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
         </div>
         <div class="toast-body"></div>
     </div>
@@ -159,43 +281,85 @@
 
 {% block extra_js %}
 <script>
+    function toggleLineNumbers() {
+        const lineNumbers = document.querySelectorAll('.line-numbers');
+        const isVisible = lineNumbers[0].style.display !== 'none';
+        
+        lineNumbers.forEach(ln => {
+            ln.style.display = isVisible ? 'none' : 'inline';
+        });
+    }
+
+    function goToLine(lineNumber) {
+        // İçerik sekmesine geç
+        document.getElementById('content-tab').click();
+        
+        // Satıra scroll yap
+        setTimeout(() => {
+            const lines = document.querySelectorAll('.content-line');
+            if (lines[lineNumber - 1]) {
+                lines[lineNumber - 1].scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+                lines[lineNumber - 1].style.backgroundColor = '#fff3cd';
+                setTimeout(() => {
+                    lines[lineNumber - 1].style.backgroundColor = '';
+                }, 2000);
+            }
+        }, 100);
+    }
+
+    function downloadFile() {
+        window.location.href = `/list/download?path=${encodeURIComponent('{{ file_path|escapejs }}')}`;
+    }
+
     async function quarantineFile() {
         if (!confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
             return;
         }
 
         try {
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            
-            // Form verisi oluştur
-            const formData = new FormData();
-            formData.append('file_path', '{{ file_path|escapejs }}');
-            formData.append('threat_type', 'Sensitive Data');
-            formData.append('threat_level', 'High');
-            formData.append('detected_pattern', '{{ matches|first|first|escapejs }}');
-
-            console.log('Gönderilen veri:', Object.fromEntries(formData));
-
-            const response = await fetch('{{ quarantine_url|safe }}', {
+            const response = await fetch(`/regex/quarantine/${encodeURIComponent('{{ file_path|escapejs }}')}/ `, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': csrfToken
-                },
-                body: formData
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
             });
 
             const data = await response.json();
-
-            if (data.success) {
-                alert('Dosya başarıyla karantinaya alındı.');
-                window.location.href = '{% url "regex:sensitive_scan" %}';
+            
+            if (data.success || response.ok) {
+                showToast('Dosya başarıyla karantinaya alındı.', 'success');
+                setTimeout(() => {
+                    window.location.href = '{% url "regex:sensitive_scan_results" %}';
+                }, 1500);
             } else {
-                alert('Hata: ' + data.error);
+                showToast('Hata: ' + (data.error || 'Bilinmeyen hata'), 'error');
             }
         } catch (error) {
             console.error('Karantina hatası:', error);
-            alert('Dosya karantinaya alınırken bir hata oluştu.');
+            showToast('Dosya karantinaya alınırken bir hata oluştu.', 'error');
         }
     }
+
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('actionToast');
+        const toastBody = toast.querySelector('.toast-body');
+        const toastHeader = toast.querySelector('.toast-header');
+        
+        toastBody.textContent = message;
+        
+        // Renk ayarı
+        toastHeader.className = `toast-header bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} text-white`;
+        
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    }
+
+    // Sayfa yüklendiğinde eşleşmeleri vurgula
+    document.addEventListener('DOMContentLoaded', function() {
+        // Bu fonksiyon zaten sunucu tarafında yapılmış olmalı
+    });
 </script>
 {% endblock %} 

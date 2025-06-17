@@ -1,10 +1,7 @@
 import os
 import stat
 import subprocess
-import sys
-
-if sys.platform != 'win32':
-    import pwd
+import pwd
 
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -57,13 +54,10 @@ def get_items(path):
 
 def get_username_from_uid(uid):
     """Get username from uid"""
-    if sys.platform != 'win32':
-        try:
-            return pwd.getpwuid(uid).pw_name
-        except KeyError:
-            return str(uid)
-    else:
-        return str(uid) # On Windows, just return the UID
+    try:
+        return pwd.getpwuid(uid).pw_name
+    except KeyError:
+        return str(uid)
 
 @csrf_exempt
 def api_mkdir(request):

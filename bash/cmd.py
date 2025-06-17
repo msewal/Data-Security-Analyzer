@@ -8,24 +8,9 @@ import stat
 def ls(path):
     if not path:
         path = "."  # varsayılan olarak geçerli dizini kullan
-    if os.name == 'nt':
-        # Windows ise os.listdir kullan
-        entries = os.listdir(path)
-        result = []
-        for entry in entries:
-            full_path = os.path.join(path, entry)
-            stats = os.stat(full_path)
-            permissions = oct(stats.st_mode)[-3:]
-            size = stats.st_size
-            owner_user = stats.st_uid if hasattr(stats, 'st_uid') else "N/A"
-            owner_group = stats.st_gid if hasattr(stats, 'st_gid') else "N/A"
-            modified_time = time.ctime(stats.st_mtime)
-            result.append(f"- {permissions} 1 {owner_user} {owner_group} {size} {modified_time} {entry}")
-        return "\n".join([""] * 2 + result + [""])
-    else:
-        # Linux sistemlerde normal ls kullan
-        output = subprocess.run(f"ls -lah {path}", capture_output=True, text=True, shell=True).stdout
-        return output
+    # Linux sistemlerde normal ls kullan
+    output = subprocess.run(f"ls -lah {path}", capture_output=True, text=True, shell=True).stdout
+    return output
 #it take a path as an input and executes the "ls -lah" command in the os
 #text=True: output should be treated as text
 #shell=True: Enables using command directly in the command line.
