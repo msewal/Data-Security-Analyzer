@@ -36,6 +36,10 @@ from .patterns import (
 from collections import defaultdict
 from .utils.scan_tools import scan_with_grep, scan_with_ripgrep, scan_with_ag, scan_with_ack
 import math
+import base64
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 # Use BASE_DIR from settings
 BASE_DIR = settings.BASE_DIR
@@ -624,6 +628,53 @@ def sensitive_scan_results(request):
 
 def sensitive_scan_detail(request, file_path):
     """Hassas veri taraması sonuçlarının detaylarını gösterir."""
+    # POST istekleri için maskeleme ve şifreleme işlemleri
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        password = request.POST.get('password', '')
+        mask_type = request.POST.get('mask_type', 'asterisk')
+        
+        if action == 'mask':
+            try:
+                enhanced_content = get_enhanced_file_content(file_path)
+                masked_content = mask_sensitive_data(enhanced_content['raw_content'], mask_type)
+                return JsonResponse({
+                    'success': True,
+                    'masked_content': masked_content,
+                    'mask_type': mask_type
+                })
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+                
+        elif action == 'encrypt':
+            try:
+                if not password:
+                    return JsonResponse({'success': False, 'error': 'Şifre gerekli'})
+                enhanced_content = get_enhanced_file_content(file_path)
+                encrypted_content = encrypt_text(enhanced_content['raw_content'], password)
+                return JsonResponse({
+                    'success': True,
+                    'encrypted_content': encrypted_content
+                })
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+                
+        elif action == 'decrypt':
+            try:
+                if not password:
+                    return JsonResponse({'success': False, 'error': 'Şifre gerekli'})
+                encrypted_data = request.POST.get('encrypted_data', '')
+                decrypted_content = decrypt_text(encrypted_data, password)
+                if decrypted_content:
+                    return JsonResponse({
+                        'success': True,
+                        'decrypted_content': decrypted_content
+                    })
+                else:
+                    return JsonResponse({'success': False, 'error': 'Şifre çözme başarısız'})
+            except Exception as e:
+                return JsonResponse({'success': False, 'error': str(e)})
+    
     try:
         # Dosya bilgilerini al
         file_size = None
@@ -632,8 +683,10 @@ def sensitive_scan_detail(request, file_path):
             file_size = format_file_size(os.path.getsize(file_path))
             file_type = get_file_type(file_path)
         
-        # Dosya içeriğini oku
-        file_content = get_file_content(file_path)
+        # Gelişmiş dosya içeriği çıkarma
+        enhanced_content = get_enhanced_file_content(file_path)
+        file_content = enhanced_content['raw_content']
+        
         if not file_content:
             return render(request, 'regex/sensitive_scan_detail.html', {
                 'file_path': file_path,
@@ -709,6 +762,9 @@ def sensitive_scan_detail(request, file_path):
             'file_content_lines': content_lines,
             'file_size': file_size,
             'file_type': file_type,
+            'file_metadata': enhanced_content.get('metadata', {}),
+            'extraction_method': enhanced_content.get('extraction_method', 'basic'),
+            'page_data': enhanced_content.get('pages', []),
             'unique_categories': unique_categories,
             'unique_subcategories': unique_subcategories,
             'unique_patterns': unique_patterns
@@ -880,3 +936,216 @@ def do_search(request):
         'pattern': selected_pattern,
     }
     return render(request, 'regex/search_results.html', context)
+
+# Maskeleme ve şifreleme fonksiyonları
+def generate_encryption_key(password: str, salt: bytes = None):
+    """Şifreleme anahtarı oluşturur."""
+    if salt is None:
+        salt = os.urandom(16)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+    )
+    key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+    return key, salt
+
+def encrypt_text(text: str, password: str):
+    """Metni şifreler."""
+    key, salt = generate_encryption_key(password)
+    f = Fernet(key)
+    encrypted_data = f.encrypt(text.encode())
+    return base64.urlsafe_b64encode(salt + encrypted_data).decode()
+
+def decrypt_text(encrypted_text: str, password: str):
+    """Şifrelenmiş metni çözer."""
+    try:
+        data = base64.urlsafe_b64decode(encrypted_text.encode())
+        salt = data[:16]
+        encrypted_data = data[16:]
+        key, _ = generate_encryption_key(password, salt)
+        f = Fernet(key)
+        decrypted_data = f.decrypt(encrypted_data)
+        return decrypted_data.decode()
+    except Exception as e:
+        logger.error(f"Decryption error: {str(e)}")
+        return None
+
+def mask_sensitive_data(text: str, mask_type: str = 'asterisk'):
+    """Hassas veriyi maskeler."""
+    patterns_to_mask = {
+        'tc_kimlik': r'\b[1-9][0-9]{10}\b',
+        'email': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+        'phone': r'\b(?:\+90|0)?\s*?\(?5\d{2}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}',
+        'credit_card': r'\b(?:\d[ -]*?){13,16}\b',
+        'iban': r'TR\d{2}\s?(\d{4}[ ]?){5}\d{2}',
+    }
+    
+    masked_text = text
+    for pattern_name, pattern in patterns_to_mask.items():
+        if mask_type == 'asterisk':
+            masked_text = re.sub(pattern, lambda m: '*' * len(m.group()), masked_text)
+        elif mask_type == 'hash':
+            masked_text = re.sub(pattern, lambda m: hashlib.md5(m.group().encode()).hexdigest()[:8], masked_text)
+        elif mask_type == 'partial':
+            def partial_mask(match):
+                value = match.group()
+                if len(value) > 4:
+                    return value[:2] + '*' * (len(value) - 4) + value[-2:]
+                return '*' * len(value)
+            masked_text = re.sub(pattern, partial_mask, masked_text)
+    
+    return masked_text
+
+def get_enhanced_file_content(file_path, include_metadata=True):
+    """Gelişmiş dosya içeriği çıkarma."""
+    try:
+        file_type = get_file_type(file_path)
+        content_data = {
+            'raw_content': '',
+            'metadata': {},
+            'pages': [],
+            'extraction_method': 'basic'
+        }
+        
+        if file_type == 'pdf':
+            try:
+                import PyPDF2
+                import pdfplumber
+                
+                # PyPDF2 ile temel çıkarım
+                with open(file_path, 'rb') as f:
+                    pdf_reader = PyPDF2.PdfReader(f)
+                    
+                    if include_metadata:
+                        content_data['metadata'] = {
+                            'page_count': len(pdf_reader.pages),
+                            'title': pdf_reader.metadata.get('/Title', 'N/A') if pdf_reader.metadata else 'N/A',
+                            'author': pdf_reader.metadata.get('/Author', 'N/A') if pdf_reader.metadata else 'N/A',
+                            'creator': pdf_reader.metadata.get('/Creator', 'N/A') if pdf_reader.metadata else 'N/A',
+                            'creation_date': str(pdf_reader.metadata.get('/CreationDate', 'N/A')) if pdf_reader.metadata else 'N/A'
+                        }
+                    
+                    # pdfplumber ile gelişmiş çıkarım
+                    try:
+                        with pdfplumber.open(file_path) as pdf:
+                            for i, page in enumerate(pdf.pages):
+                                page_content = page.extract_text()
+                                tables = page.extract_tables()
+                                
+                                page_data = {
+                                    'page_number': i + 1,
+                                    'text': page_content or '',
+                                    'tables': tables or [],
+                                    'char_count': len(page_content) if page_content else 0
+                                }
+                                content_data['pages'].append(page_data)
+                                content_data['raw_content'] += (page_content or '') + '\n'
+                        
+                        content_data['extraction_method'] = 'pdfplumber'
+                    except ImportError:
+                        # pdfplumber yoksa PyPDF2 kullan
+                        for page in pdf_reader.pages:
+                            page_text = page.extract_text()
+                            content_data['raw_content'] += page_text + '\n'
+                        content_data['extraction_method'] = 'pypdf2'
+                        
+            except Exception as e:
+                logger.error(f"Enhanced PDF reading error {file_path}: {str(e)}")
+                return get_file_content(file_path)  # Fallback to basic method
+                
+        elif file_type in ['docx', 'doc']:
+            try:
+                import docx
+                doc = docx.Document(file_path)
+                
+                if include_metadata:
+                    core_props = doc.core_properties
+                    content_data['metadata'] = {
+                        'title': core_props.title or 'N/A',
+                        'author': core_props.author or 'N/A',
+                        'created': str(core_props.created) if core_props.created else 'N/A',
+                        'modified': str(core_props.modified) if core_props.modified else 'N/A',
+                        'paragraph_count': len(doc.paragraphs),
+                        'table_count': len(doc.tables)
+                    }
+                
+                # Paragrafları çıkar
+                for para in doc.paragraphs:
+                    content_data['raw_content'] += para.text + '\n'
+                
+                # Tabloları çıkar
+                for table in doc.tables:
+                    table_data = []
+                    for row in table.rows:
+                        row_data = [cell.text for cell in row.cells]
+                        table_data.append(row_data)
+                    content_data['raw_content'] += '\n' + str(table_data) + '\n'
+                    
+                content_data['extraction_method'] = 'python-docx'
+                
+            except Exception as e:
+                logger.error(f"Enhanced DOCX reading error {file_path}: {str(e)}")
+                return get_file_content(file_path)
+                
+        elif file_type in ['xlsx', 'xls']:
+            try:
+                import pandas as pd
+                
+                # Tüm sheet'leri oku
+                excel_file = pd.ExcelFile(file_path)
+                
+                if include_metadata:
+                    content_data['metadata'] = {
+                        'sheet_names': excel_file.sheet_names,
+                        'sheet_count': len(excel_file.sheet_names)
+                    }
+                
+                for sheet_name in excel_file.sheet_names:
+                    df = pd.read_excel(file_path, sheet_name=sheet_name)
+                    content_data['raw_content'] += f'\n=== Sheet: {sheet_name} ===\n'
+                    content_data['raw_content'] += df.to_string() + '\n'
+                
+                content_data['extraction_method'] = 'pandas'
+                
+            except Exception as e:
+                logger.error(f"Enhanced Excel reading error {file_path}: {str(e)}")
+                return get_file_content(file_path)
+                
+        elif file_type in ['pptx', 'ppt']:
+            try:
+                from pptx import Presentation
+                prs = Presentation(file_path)
+                
+                if include_metadata:
+                    content_data['metadata'] = {
+                        'slide_count': len(prs.slides),
+                        'slide_layouts': len(prs.slide_layouts)
+                    }
+                
+                for i, slide in enumerate(prs.slides):
+                    slide_text = []
+                    for shape in slide.shapes:
+                        if hasattr(shape, "text"):
+                            slide_text.append(shape.text)
+                    
+                    content_data['raw_content'] += f'\n=== Slide {i+1} ===\n'
+                    content_data['raw_content'] += '\n'.join(slide_text) + '\n'
+                
+                content_data['extraction_method'] = 'python-pptx'
+                
+            except Exception as e:
+                logger.error(f"Enhanced PPTX reading error {file_path}: {str(e)}")
+                return get_file_content(file_path)
+        
+        else:
+            # Diğer dosya türleri için temel metod kullan
+            content_data['raw_content'] = get_file_content(file_path) or ''
+            content_data['extraction_method'] = 'basic'
+        
+        return content_data
+        
+    except Exception as e:
+        logger.error(f"Enhanced file content extraction error {file_path}: {str(e)}")
+        return {'raw_content': get_file_content(file_path) or '', 'metadata': {}, 'extraction_method': 'fallback'}

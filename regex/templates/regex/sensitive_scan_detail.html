@@ -144,22 +144,32 @@
     {% if matches %}
     <div class="file-stats">
         <div class="row text-center">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <h5 class="text-primary">{{ matches|length }}</h5>
                 <small class="text-muted">Toplam Eşleşme</small>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <h5 class="text-success">{{ unique_categories|length }}</h5>
                 <small class="text-muted">Kategori</small>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <h5 class="text-warning">{{ unique_subcategories|length }}</h5>
                 <small class="text-muted">Alt Kategori</small>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <h5 class="text-info">{{ unique_patterns|length }}</h5>
                 <small class="text-muted">Benzersiz Desen</small>
             </div>
+            <div class="col-md-2">
+                <h5 class="text-secondary">{{ extraction_method|title }}</h5>
+                <small class="text-muted">Çıkarım Metodu</small>
+            </div>
+            {% if file_metadata.page_count %}
+            <div class="col-md-2">
+                <h5 class="text-dark">{{ file_metadata.page_count }}</h5>
+                <small class="text-muted">Sayfa Sayısı</small>
+            </div>
+            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -174,6 +184,18 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button" role="tab">
                 <i class="bi bi-search"></i> Eşleşmeler ({{ matches|length }})
+            </button>
+        </li>
+        {% if file_metadata %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="metadata-tab" data-bs-toggle="tab" data-bs-target="#metadata" type="button" role="tab">
+                <i class="bi bi-info-circle"></i> Meta Veriler
+            </button>
+        </li>
+        {% endif %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab">
+                <i class="bi bi-shield-lock"></i> Güvenlik İşlemleri
             </button>
         </li>
     </ul>
@@ -263,6 +285,139 @@
             </div>
             {% endif %}
         </div>
+
+        <!-- Meta Veriler -->
+        {% if file_metadata %}
+        <div class="tab-pane fade" id="metadata" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Dosya Meta Verileri</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for key, value in file_metadata.items %}
+                        <div class="col-md-6 mb-3">
+                            <strong>{{ key|title }}:</strong>
+                            <span class="text-muted">{{ value }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if page_data %}
+                    <hr>
+                    <h6>Sayfa Detayları:</h6>
+                    <div class="accordion" id="pageAccordion">
+                        {% for page in page_data %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#page-{{ forloop.counter }}">
+                                    Sayfa {{ page.page_number }} ({{ page.char_count }} karakter)
+                                </button>
+                            </h2>
+                            <div id="page-{{ forloop.counter }}" class="accordion-collapse collapse">
+                                <div class="accordion-body">
+                                    <pre class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">{{ page.text }}</pre>
+                                    {% if page.tables %}
+                                    <h6 class="mt-3">Tablolar:</h6>
+                                    {% for table in page.tables %}
+                                    <div class="table-responsive mb-3">
+                                        <table class="table table-sm table-bordered">
+                                            {% for row in table %}
+                                            <tr>
+                                                {% for cell in row %}
+                                                <td>{{ cell }}</td>
+                                                {% endfor %}
+                                            </tr>
+                                            {% endfor %}
+                                        </table>
+                                    </div>
+                                    {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Güvenlik İşlemleri -->
+        <div class="tab-pane fade" id="security" role="tabpanel">
+            <div class="row">
+                <!-- Maskeleme -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-eye-slash"></i> Veri Maskeleme</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Maskeleme Türü:</label>
+                                <select class="form-select" id="maskType">
+                                    <option value="asterisk">Yıldız (*) ile Maskele</option>
+                                    <option value="partial">Kısmi Maskeleme</option>
+                                    <option value="hash">Hash ile Maskele</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-warning" onclick="maskSensitiveData()">
+                                <i class="bi bi-eye-slash"></i> Maskeleme Uygula
+                            </button>
+                            <div id="maskedContent" class="mt-3" style="display: none;">
+                                <h6>Maskelenmiş İçerik:</h6>
+                                <div class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;">
+                                    <pre id="maskedText"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Şifreleme -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-lock"></i> Veri Şifreleme</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Şifre:</label>
+                                <input type="password" class="form-control" id="encryptPassword" placeholder="Güçlü bir şifre girin">
+                            </div>
+                            <div class="btn-group w-100 mb-3">
+                                <button class="btn btn-success" onclick="encryptContent()">
+                                    <i class="bi bi-lock"></i> Şifrele
+                                </button>
+                                <button class="btn btn-info" onclick="decryptContent()">
+                                    <i class="bi bi-unlock"></i> Şifreyi Çöz
+                                </button>
+                            </div>
+                            
+                            <div id="encryptedContent" class="mt-3" style="display: none;">
+                                <h6>Şifrelenmiş İçerik:</h6>
+                                <textarea class="form-control" id="encryptedText" rows="6" readonly></textarea>
+                                <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyToClipboard('encryptedText')">
+                                    <i class="bi bi-clipboard"></i> Kopyala
+                                </button>
+                            </div>
+                            
+                            <div id="decryptSection" class="mt-3">
+                                <h6>Şifrelenmiş Veri Çözme:</h6>
+                                <textarea class="form-control mb-2" id="decryptInput" rows="4" placeholder="Şifrelenmiş veriyi buraya yapıştırın"></textarea>
+                                <div id="decryptedContent" style="display: none;">
+                                    <h6>Çözülmüş İçerik:</h6>
+                                    <div class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">
+                                        <pre id="decryptedText"></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -282,12 +437,12 @@
 {% block extra_js %}
 <script>
     function toggleLineNumbers() {
-        const lineNumbers = document.querySelectorAll('.line-numbers');
-        const isVisible = lineNumbers[0].style.display !== 'none';
+        var lineNumbers = document.querySelectorAll('.line-numbers');
+        var isVisible = lineNumbers[0].style.display !== 'none';
         
-        lineNumbers.forEach(ln => {
-            ln.style.display = isVisible ? 'none' : 'inline';
-        });
+        for (var i = 0; i < lineNumbers.length; i++) {
+            lineNumbers[i].style.display = isVisible ? 'none' : 'inline';
+        }
     }
 
     function goToLine(lineNumber) {
@@ -295,15 +450,15 @@
         document.getElementById('content-tab').click();
         
         // Satıra scroll yap
-        setTimeout(() => {
-            const lines = document.querySelectorAll('.content-line');
+        setTimeout(function() {
+            var lines = document.querySelectorAll('.content-line');
             if (lines[lineNumber - 1]) {
                 lines[lineNumber - 1].scrollIntoView({ 
                     behavior: 'smooth', 
                     block: 'center' 
                 });
                 lines[lineNumber - 1].style.backgroundColor = '#fff3cd';
-                setTimeout(() => {
+                setTimeout(function() {
                     lines[lineNumber - 1].style.backgroundColor = '';
                 }, 2000);
             }
@@ -311,50 +466,184 @@
     }
 
     function downloadFile() {
-        window.location.href = `/list/download?path=${encodeURIComponent('{{ file_path|escapejs }}')}`;
+        var filePath = '{{ file_path|escapejs }}';
+        window.location.href = '/list/download?path=' + encodeURIComponent(filePath);
     }
 
-    async function quarantineFile() {
+    function quarantineFile() {
         if (!confirm('Bu dosyayı karantinaya almak istediğinizden emin misiniz?')) {
             return;
         }
 
-        try {
-            const response = await fetch(`/regex/quarantine/${encodeURIComponent('{{ file_path|escapejs }}')}/ `, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        var filePath = '{{ file_path|escapejs }}';
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/regex/quarantine/' + encodeURIComponent(filePath) + '/', true);
+        xhr.setRequestHeader('X-CSRFToken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data.success) {
+                            showToast('Dosya başarıyla karantinaya alındı.', 'success');
+                            setTimeout(function() {
+                                window.location.href = '{% url "regex:sensitive_scan_results" %}';
+                            }, 1500);
+                        } else {
+                            showToast('Hata: ' + (data.error || 'Bilinmeyen hata'), 'error');
+                        }
+                    } catch (e) {
+                        showToast('Dosya başarıyla karantinaya alındı.', 'success');
+                        setTimeout(function() {
+                            window.location.href = '{% url "regex:sensitive_scan_results" %}';
+                        }, 1500);
+                    }
+                } else {
+                    showToast('Dosya karantinaya alınırken bir hata oluştu.', 'error');
                 }
-            });
-
-            const data = await response.json();
-            
-            if (data.success || response.ok) {
-                showToast('Dosya başarıyla karantinaya alındı.', 'success');
-                setTimeout(() => {
-                    window.location.href = '{% url "regex:sensitive_scan_results" %}';
-                }, 1500);
-            } else {
-                showToast('Hata: ' + (data.error || 'Bilinmeyen hata'), 'error');
             }
-        } catch (error) {
-            console.error('Karantina hatası:', error);
-            showToast('Dosya karantinaya alınırken bir hata oluştu.', 'error');
-        }
+        };
+        
+        xhr.send();
     }
 
-    function showToast(message, type = 'info') {
-        const toast = document.getElementById('actionToast');
-        const toastBody = toast.querySelector('.toast-body');
-        const toastHeader = toast.querySelector('.toast-header');
+    function showToast(message, type) {
+        if (typeof type === 'undefined') {
+            type = 'info';
+        }
+        var toast = document.getElementById('actionToast');
+        var toastBody = toast.querySelector('.toast-body');
+        var toastHeader = toast.querySelector('.toast-header');
         
         toastBody.textContent = message;
         
         // Renk ayarı
-        toastHeader.className = `toast-header bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} text-white`;
+        var bgClass = 'toast-header bg-';
+        if (type === 'success') {
+            bgClass += 'success';
+        } else if (type === 'error') {
+            bgClass += 'danger';
+        } else {
+            bgClass += 'info';
+        }
+        bgClass += ' text-white';
+        toastHeader.className = bgClass;
         
-        const bsToast = new bootstrap.Toast(toast);
+        var bsToast = new bootstrap.Toast(toast);
         bsToast.show();
+    }
+
+    // Maskeleme işlemi
+    function maskSensitiveData() {
+        var maskType = document.getElementById('maskType').value;
+        var filePath = '{{ file_path|escapejs }}';
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', window.location.href, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.setRequestHeader('X-CSRFToken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        document.getElementById('maskedText').textContent = response.masked_content;
+                        document.getElementById('maskedContent').style.display = 'block';
+                        showToast('Maskeleme başarılı!', 'success');
+                    } else {
+                        showToast('Maskeleme hatası: ' + response.error, 'error');
+                    }
+                } catch (e) {
+                    showToast('Maskeleme sırasında hata oluştu.', 'error');
+                }
+            }
+        };
+        
+        xhr.send('action=mask&mask_type=' + encodeURIComponent(maskType));
+    }
+
+    // Şifreleme işlemi
+    function encryptContent() {
+        var password = document.getElementById('encryptPassword').value;
+        if (!password) {
+            showToast('Lütfen bir şifre girin.', 'error');
+            return;
+        }
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', window.location.href, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.setRequestHeader('X-CSRFToken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        document.getElementById('encryptedText').value = response.encrypted_content;
+                        document.getElementById('encryptedContent').style.display = 'block';
+                        showToast('Şifreleme başarılı!', 'success');
+                    } else {
+                        showToast('Şifreleme hatası: ' + response.error, 'error');
+                    }
+                } catch (e) {
+                    showToast('Şifreleme sırasında hata oluştu.', 'error');
+                }
+            }
+        };
+        
+        xhr.send('action=encrypt&password=' + encodeURIComponent(password));
+    }
+
+    // Şifre çözme işlemi
+    function decryptContent() {
+        var password = document.getElementById('encryptPassword').value;
+        var encryptedData = document.getElementById('decryptInput').value;
+        
+        if (!password) {
+            showToast('Lütfen bir şifre girin.', 'error');
+            return;
+        }
+        
+        if (!encryptedData) {
+            showToast('Lütfen şifrelenmiş veriyi girin.', 'error');
+            return;
+        }
+        
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', window.location.href, true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.setRequestHeader('X-CSRFToken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        document.getElementById('decryptedText').textContent = response.decrypted_content;
+                        document.getElementById('decryptedContent').style.display = 'block';
+                        showToast('Şifre çözme başarılı!', 'success');
+                    } else {
+                        showToast('Şifre çözme hatası: ' + response.error, 'error');
+                    }
+                } catch (e) {
+                    showToast('Şifre çözme sırasında hata oluştu.', 'error');
+                }
+            }
+        };
+        
+        xhr.send('action=decrypt&password=' + encodeURIComponent(password) + '&encrypted_data=' + encodeURIComponent(encryptedData));
+    }
+
+    // Panoya kopyalama
+    function copyToClipboard(elementId) {
+        var element = document.getElementById(elementId);
+        element.select();
+        element.setSelectionRange(0, 99999);
+        document.execCommand('copy');
+        showToast('Panoya kopyalandı!', 'success');
     }
 
     // Sayfa yüklendiğinde eşleşmeleri vurgula

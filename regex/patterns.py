@@ -383,3 +383,162 @@ def should_scan_file(file_path):
         '.docx'  # Added support for Word documents
     }
     return os.path.splitext(file_path)[1].lower() in text_extensions 
+
+# Gelişmiş regex desenleri - daha hassas ve kapsamlı
+ENHANCED_PATTERNS = {
+    'tc_kimlik': [
+        r'\b[1-9]\d{2}[ -]?\d{2}[ -]?\d{3}[ -]?\d{2}[ -]?\d{2}\b',  # Formatlanmış TC
+        r'\b[1-9]\d{10}\b',  # Basit TC
+        r'(?i)(?:tc|kimlik|identity)[\s:]*(\d{11})\b',  # Context ile TC
+    ],
+    'email_advanced': [
+        r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+        r'(?i)(?:email|e-mail|mail|posta)[\s:]*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})',
+        r'mailto:([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})',
+    ],
+    'phone_turkey': [
+        r'\b(?:\+90|0)?[ ]?(?:5[0-9]{2}|[1-4][0-9]{2})[ ]?[0-9]{3}[ ]?[0-9]{2}[ ]?[0-9]{2}\b',
+        r'\+90[ -]?\d{3}[ -]?\d{3}[ -]?\d{2}[ -]?\d{2}',
+        r'0\d{3}[ -]?\d{3}[ -]?\d{2}[ -]?\d{2}',
+        r'(?i)(?:tel|telefon|phone)[\s:]*([+]?[\d\s-()]{10,})',
+    ],
+    'credit_card_detailed': [
+        # Visa
+        r'\b4[0-9]{12}(?:[0-9]{3})?\b',
+        # MasterCard
+        r'\b5[1-5][0-9]{14}\b',
+        # American Express
+        r'\b3[47][0-9]{13}\b',
+        # Discover
+        r'\b6(?:011|5[0-9]{2})[0-9]{12}\b',
+        # Genel kart formatı
+        r'\b(?:\d[ -]*?){13,19}\b',
+        r'(?i)(?:kart|card|kartno)[\s:]*(\d{4}[ -]?\d{4}[ -]?\d{4}[ -]?\d{4})',
+    ],
+    'iban_detailed': [
+        r'\bTR[0-9]{2}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{4}[ ]?[0-9]{2}\b',
+        r'(?i)(?:iban)[\s:]*([A-Z]{2}\d{2}[\d\s]{15,32})',
+        r'[A-Z]{2}\d{2}[\d\s]{15,32}',
+    ],
+    'passport_numbers': [
+        r'\b[A-Z][0-9]{8}\b',  # Türk pasaportu
+        r'(?i)(?:passport|pasaport)[\s:]*([A-Z]\d{8})',
+        r'\b[A-Z]{1,2}\d{6,9}\b',  # Genel pasaport formatı
+    ],
+    'social_security': [
+        r'\b\d{3}-\d{2}-\d{4}\b',  # SSN formatı
+        r'(?i)(?:ssn|social.security)[\s:]*(\d{3}[-]?\d{2}[-]?\d{4})',
+        r'\b\d{9}\b',  # 9 haneli SSN
+    ],
+    'license_plates': [
+        r'\b\d{2}[ ]?[A-Z]{1,3}[ ]?\d{2,4}\b',  # Türk plaka
+        r'(?i)(?:plaka|plate)[\s:]*(\d{2}[ ]?[A-Z]{1,3}[ ]?\d{2,4})',
+    ],
+    'ip_addresses': [
+        r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b',  # IPv4
+        r'\b(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}\b',  # IPv6
+        r'(?i)(?:ip|address)[\s:]*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})',
+    ],
+    'financial_accounts': [
+        r'\b\d{10,26}\b',  # Hesap numarası
+        r'(?i)(?:account|hesap)[\s:]*(\d{10,26})',
+        r'\b\d{4}[ -]?\d{4}[ -]?\d{4}[ -]?\d{4,7}\b',
+    ],
+    'api_keys_extended': [
+        r'(?i)(?:api[_-]?key|apikey)[\s]*[:=][\s]*["\']?([a-zA-Z0-9]{32,})["\']?',
+        r'(?i)(?:secret[_-]?key|secretkey)[\s]*[:=][\s]*["\']?([a-zA-Z0-9]{32,})["\']?',
+        r'(?i)(?:access[_-]?token|accesstoken)[\s]*[:=][\s]*["\']?([a-zA-Z0-9]{32,})["\']?',
+        r'(?i)(?:bearer)[\s]+([a-zA-Z0-9._-]{32,})',
+    ],
+    'crypto_wallets': [
+        r'\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b',  # Bitcoin
+        r'\b0x[a-fA-F0-9]{40}\b',  # Ethereum
+        r'\b[LM3][a-km-zA-HJ-NP-Z1-9]{26,33}\b',  # Litecoin
+    ],
+    'database_connections': [
+        r'(?i)(?:mongodb|mysql|postgresql|oracle|sqlserver)://[^:\s]+:[^@\s]+@[^:\s]+:\d+',
+        r'(?i)(?:host|server|hostname)[\s]*[:=][\s]*["\']?([a-zA-Z0-9.-]+)["\']?',
+        r'(?i)(?:username|user|uid)[\s]*[:=][\s]*["\']?([a-zA-Z0-9._-]+)["\']?',
+    ],
+    'personal_data_detailed': [
+        r'(?i)(?:doğum|birth|born)[\s]*(?:tarihi|date)[\s:]*(\d{1,2}[/.]\d{1,2}[/.]\d{4})',
+        r'(?i)(?:anne|father|mother|parent)[\s]*(?:adı|name)[\s:]*([A-ZÇĞIİÖŞÜ][a-zçğıiöşü]+)',
+        r'(?i)(?:adres|address)[\s:]*([A-ZÇĞIİÖŞÜa-zçğıiöşü\s,.\d/]+(?:mah|sokak|cad|bulvar|apt))',
+    ]
+}
+
+def get_enhanced_patterns():
+    """Gelişmiş regex desenlerini döndürür."""
+    return ENHANCED_PATTERNS
+
+def validate_and_score_pattern(pattern, test_text):
+    """Regex deseninin kalitesini test eder ve puanlar."""
+    try:
+        compiled = re.compile(pattern, re.IGNORECASE | re.MULTILINE)
+        matches = compiled.findall(test_text)
+        
+        score = {
+            'pattern': pattern,
+            'matches_found': len(matches),
+            'false_positives': 0,  # Manuel kontrol gerekli
+            'precision': 0.0,
+            'is_valid': True
+        }
+        
+        return score
+    except re.error as e:
+        return {
+            'pattern': pattern,
+            'error': str(e),
+            'is_valid': False
+        }
+
+def optimize_regex_search(content, patterns, case_sensitive=False, word_boundary=True):
+    """Gelişmiş regex arama optimizasyonu."""
+    flags = re.MULTILINE
+    if not case_sensitive:
+        flags |= re.IGNORECASE
+    
+    results = []
+    for pattern in patterns:
+        try:
+            # Word boundary ekleme
+            if word_boundary and not pattern.startswith(r'\b'):
+                optimized_pattern = r'\b' + pattern + r'\b'
+            else:
+                optimized_pattern = pattern
+            
+            compiled = re.compile(optimized_pattern, flags)
+            matches = compiled.finditer(content)
+            
+            for match in matches:
+                results.append({
+                    'pattern': pattern,
+                    'match': match.group(),
+                    'start': match.start(),
+                    'end': match.end(),
+                    'line': content[:match.start()].count('\n') + 1,
+                    'confidence': calculate_match_confidence(match.group(), pattern)
+                })
+        except re.error as e:
+            logger.error(f"Pattern error: {pattern} - {str(e)}")
+    
+    return results
+
+def calculate_match_confidence(match_text, pattern):
+    """Eşleşme güven skorunu hesaplar."""
+    confidence = 0.5  # Temel güven skoru
+    
+    # Uzunluk kontrolü
+    if len(match_text) >= 8:
+        confidence += 0.2
+    
+    # Format kontrolü (özel karakterler, sayılar vs.)
+    if re.search(r'[0-9]', match_text):
+        confidence += 0.1
+    if re.search(r'[A-Z]', match_text):
+        confidence += 0.1
+    if re.search(r'[@.-]', match_text):
+        confidence += 0.1
+    
+    return min(confidence, 1.0) 
